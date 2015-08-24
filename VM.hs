@@ -1,3 +1,7 @@
+module VM where
+
+import Data.Bits as B
+
 data Register a = Register { value :: a } deriving (Show, Eq)
 
 instance Functor Register where
@@ -34,6 +38,15 @@ sub = combine (-)
 mul = combine (*)
 
 div = combine (/)
+
+xor :: (Bits a) => Int -> Int -> Int -> CPU a -> CPU a
+xor = combine B.xor
+
+and :: (Bits a) => Int -> Int -> Int -> CPU a -> CPU a
+and = combine (.&.)
+
+or :: (Bits a) => Int -> Int -> Int -> CPU a -> CPU a
+or = combine (.|.)
 
 replace n item ls = a ++ (item:b)
     where (a, (_:b)) = splitAt n ls
