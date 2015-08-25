@@ -3,6 +3,7 @@ module VM where
 import Data.Bits as B
 
 data Instruction = Mov Int Int
+                 | Load Int Int
                  | Add Int Int Int
                  | Sub Int Int Int
                  | Mul Int Int Int
@@ -30,11 +31,11 @@ fromLists rs mems = CPU 0 (toRegisters rs) (toRegisters mems)
 combine f r1 r2 dst (CPU c rs mem) = CPU (c+1) (replace dst final rs) mem
     where final = pure $ f (fromValue r1 rs) (fromValue r2 rs)
 
-modify f src dst cpu = combine f src dst dst cpu
+modify f src dst cpu = combine (\x _ -> f x) src dst dst cpu
 
 load addr dst (CPU c rs mem) = CPU (c+1) (replace dst (mem !! addr) rs) mem
 
-mov = modify (\x _ -> x) 
+mov = modify id
 
 add :: (Num a) => Int -> Int -> Int -> CPU a -> CPU a
 add = combine (+)
@@ -45,8 +46,8 @@ sub = combine (-)
 mul :: (Num a) => Int -> Int -> Int -> CPU a -> CPU a
 mul = combine (*)
 
--- div :: (Fractional a, Num a) => Int -> Int -> Int -> CPU a -> CPU a
--- div = combine (/)
+div :: (Fractional a, Num a) => Int -> Int -> Int -> CPU a -> CPU a
+div = combine (/)
 
 xor :: (Bits a) => Int -> Int -> Int -> CPU a -> CPU a
 xor = combine B.xor
@@ -57,17 +58,17 @@ and = combine (.&.)
 or :: (Bits a) => Int -> Int -> Int -> CPU a -> CPU a
 or = combine (.|.)
 
--- not = modify B.complement
-
 run :: (Num a) => [Instruction] -> CPU a -> CPU a
 run [] cpu = cpu
 run (x:xs) cpu = run xs (runInstruction x cpu)
 
 runInstruction :: (Num a) => Instruction -> CPU a -> CPU a
 runInstruction (Mov src dst) cpu = mov src dst cpu
+runInstruction (Load src dst) cpu = load src dst cpu
 runInstruction (Add r1 r2 dst) cpu = add r1 r2 dst cpu
 runInstruction (Sub r1 r2 dst) cpu = sub r1 r2 dst cpu
 runInstruction (Mul r1 r2 dst) cpu = mul r1 r2 dst cpu
 
+replace _ item [_] = [item]
 replace n item ls = a ++ (item:b)
     where (a, (_:b)) = splitAt n ls
