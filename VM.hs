@@ -29,7 +29,9 @@ fromValue i rs = (value . (!! i)) rs
 combine f r1 r2 dst (CPU c rs) = CPU (c+1) $ replace dst final rs
     where final = Register $ f (fromValue r1 rs) (fromValue r2 rs)
 
-mov src dst cpu = combine (\x _ -> x) src dst dst cpu
+modify f src dst cpu = combine f src dst dst cpu
+
+mov = modify (\x _ -> x) 
 
 add = combine (+)
 
@@ -39,14 +41,17 @@ mul = combine (*)
 
 div = combine (/)
 
-xor :: (Bits a) => Int -> Int -> Int -> CPU a -> CPU a
+{-
+
 xor = combine B.xor
 
-and :: (Bits a) => Int -> Int -> Int -> CPU a -> CPU a
 and = combine (.&.)
 
-or :: (Bits a) => Int -> Int -> Int -> CPU a -> CPU a
 or = combine (.|.)
+
+not = modify B.complement
+
+-}
 
 replace n item ls = a ++ (item:b)
     where (a, (_:b)) = splitAt n ls
