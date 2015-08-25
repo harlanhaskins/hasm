@@ -17,3 +17,27 @@ CPU {counter = 4, registers = [Register {value = 3},Register {value = 3},Registe
 ```
 
 It includes a small DSL for instructions, and will eventually have a parser for a custom configuration and assembly language.
+
+The recognized instructions are:
+
+```haskell
+-- register storage
+mov r1 r2
+load addr reg
+
+-- arithmetic
+add r1 r2 dst
+sub r1 r2 dst
+mul r1 r2 dst
+div r1 r2 dst
+
+-- bitwise operations
+xor r1 r2 dst
+or r1 r2 dst
+and r1 r2 dst
+
+-- conditional logic
+bne r1 r2 inst
+beq r1 r2 inst
+jmp r1 r2 inst
+```
