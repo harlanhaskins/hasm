@@ -2,7 +2,7 @@
 
 import Parser
 import System.Environment
-import Data.Attoparsec.Char8
+import Data.Attoparsec.ByteString.Char8
 import qualified Data.ByteString as B
 
 main = do

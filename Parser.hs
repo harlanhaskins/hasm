@@ -1,6 +1,6 @@
 module Parser where 
 
-import Data.Attoparsec.Char8
+import Data.Attoparsec.ByteString.Char8
 import Control.Applicative
 import Data.Char
 import VM
