@@ -3,8 +3,6 @@ A polymorphic virtual machine module in Haskell
 
 It supports a minimal subset of assembly instructions using indexed register access.
 
-The CPU is laid 
-
 For example:
 
 ```haskell
