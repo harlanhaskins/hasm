@@ -2,7 +2,7 @@ module VM where
 
 import Data.Bits as B
 
-data Register a = Register { value :: a } deriving (Show, Eq)
+data Register a = Register a deriving (Show, Eq)
 
 instance Functor Register where
     fmap f (Register v) = Register (f v)
@@ -15,9 +15,10 @@ instance Monad Register where
     return = pure
     Register v >>= f = f v
 
-data CPU a = CPU { registers :: [Register a], memory :: [Register a]} deriving (Show, Eq)
+data CPU a = CPU [Register a] [Register a] deriving (Show, Eq)
 
 fromValue i rs = (value . (!! i)) rs
+value (Register v) = v
 
 fromLists rs mems = CPU (toRegisters rs) (toRegisters mems)
     where toRegisters = (map Register) 
