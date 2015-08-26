@@ -39,5 +39,5 @@ and r1 r2 dst
 -- conditional logic
 bne r1 r2 inst
 beq r1 r2 inst
-jmp r1 r2 inst
+jmp inst
 ```
