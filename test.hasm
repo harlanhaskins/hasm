@@ -1,5 +1,9 @@
 3 0
 
-str 99 0
+str 1 0
 str 2 1
-add 0 1 2
+str 4 2
+mul 1 1 1
+bne 1 2 6
+str 9999 2
+str 4444 0
