@@ -73,5 +73,15 @@ parseInst = parseMov
         <|> parseLoad
         <|> parseStr
 
-parseFile :: Parser [Instruction Int]
-parseFile = many $ parseInst <* endOfLine
+parseConfig = do
+    (registers, memory) <- parseBinary ""
+    return $ fromLists (listOf registers 0) (listOf memory 0)
+
+listOf n v = Prelude.take n . cycle $ [v]
+
+parseFile :: Parser (CPU Int, [Instruction Int])
+parseFile = do
+    cpu <- parseConfig
+    skipSpace
+    instructions <- many $ parseInst <* endOfLine
+    return (cpu, instructions)
