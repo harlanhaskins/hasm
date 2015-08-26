@@ -1,11 +1,11 @@
 3 3
 
-set 1 0
+set 8 0
 set 2 1
 set 4 2
 str 1 0
 str 2 1
 mul 1 1 1
-beq 1 2 8
-str 9999 2
-set 4444 0
+bne 0 1 8
+jmp 5
+str 4444 0

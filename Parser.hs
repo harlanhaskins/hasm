@@ -58,6 +58,18 @@ parseAdd = do
     (r1, r2, dst) <- parseTernary "add"
     return $ Add r1 r2 dst
 
+parseOr = do
+    (r1, r2, dst) <- parseTernary "or"
+    return $ Or r1 r2 dst
+
+parseXor = do
+    (r1, r2, dst) <- parseTernary "add"
+    return $ Xor r1 r2 dst
+
+parseAnd = do
+    (r1, r2, dst) <- parseTernary "add"
+    return $ And r1 r2 dst
+
 parseSub = do
     (r1, r2, dst) <- parseTernary "sub"
     return $ Sub r1 r2 dst
@@ -78,6 +90,9 @@ parseInst = parseMov
         <|> parseNop
         <|> parseJmp
         <|> parseAdd
+        <|> parseAnd
+        <|> parseOr
+        <|> parseXor
         <|> parseSub
         <|> parseMul
         <|> parseBne

@@ -1,6 +1,6 @@
 module VM where
 
-import Data.Bits as B
+import qualified Data.Bits as B
 
 data Register a = Register a deriving (Show, Eq)
 
@@ -47,14 +47,14 @@ mul = combine (*)
 div :: (Fractional a, Num a) => Int -> Int -> Int -> CPU a -> CPU a
 div = combine (/)
 
-xor :: (Bits a) => Int -> Int -> Int -> CPU a -> CPU a
+xor :: (B.Bits a) => Int -> Int -> Int -> CPU a -> CPU a
 xor = combine B.xor
 
-and :: (Bits a) => Int -> Int -> Int -> CPU a -> CPU a
-and = combine (.&.)
+and :: (B.Bits a) => Int -> Int -> Int -> CPU a -> CPU a
+and = combine (B..&.)
 
-or :: (Bits a) => Int -> Int -> Int -> CPU a -> CPU a
-or = combine (.|.)
+or :: (B.Bits a) => Int -> Int -> Int -> CPU a -> CPU a
+or = combine (B..|.)
 
 data Instruction a = Nop
                    | Mov Int Int
@@ -62,6 +62,9 @@ data Instruction a = Nop
                    | Add Int Int Int
                    | Sub Int Int Int
                    | Mul Int Int Int
+                   | And Int Int Int
+                   | Or Int Int Int
+                   | Xor Int Int Int
                    | Jmp Int
                    | Bne Int Int Int
                    | Beq Int Int Int
@@ -75,7 +78,7 @@ data Program a = Program { remaining :: [Instruction a]
 
 fromInstructions xs = Program xs xs
 
-run :: (Num a, Eq a) => Program a -> CPU a -> CPU a
+run :: (Num a, B.Bits a) => Program a -> CPU a -> CPU a
 run (Program [] _) cpu             = cpu
 run (Program ((Jmp idx):_) is) cpu = run (Program (drop idx is) is) cpu
 run p@(Program ((Bne r1 r2 idx):_) _) cpu = branchIf (/=) p r1 r2 idx cpu
@@ -86,6 +89,9 @@ run (Program (i:is) is') cpu       = run (Program is is') (runInstruction i cpu)
           runInstruction (Add r1 r2 dst) cpu = add r1 r2 dst cpu
           runInstruction (Sub r1 r2 dst) cpu = sub r1 r2 dst cpu
           runInstruction (Mul r1 r2 dst) cpu = mul r1 r2 dst cpu
+          runInstruction (And r1 r2 dst) cpu = VM.and r1 r2 dst cpu
+          runInstruction (Xor r1 r2 dst) cpu = xor r1 r2 dst cpu
+          runInstruction (Or r1 r2 dst) cpu = VM.or r1 r2 dst cpu
           runInstruction (Str a idx) cpu = str a idx cpu
           runInstruction (Set a idx) cpu = set a idx cpu
           runInstruction Nop cpu = cpu
