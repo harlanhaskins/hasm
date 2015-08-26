@@ -8,15 +8,18 @@ import VM
 caseChar c = char (toLower c) <|> char (toUpper c)
 caseString s = try (mapM caseChar s) <?> "\"" ++ s ++ "\""
 
-parseSingular inst = do
+parseNoArgs inst = do
     skipSpace
     caseString inst
     skipSpace
+
+parseUnary inst = do
+    parseNoArgs inst
     src <- decimal
     return src
 
 parseBinary inst = do
-    src <- parseSingular inst
+    src <- parseUnary inst
     skipSpace
     dst <- decimal
     return (src, dst)
@@ -27,6 +30,10 @@ parseTernary inst = do
     dst <- decimal
     return (r1, r2, dst)
 
+parseNop = do
+    parseUnary "nop" 
+    return Nop
+
 parseMov = do
     (src, dst) <- parseBinary "mov"
     return $ Mov src dst
@@ -35,12 +42,16 @@ parseStr = do
     (val, dst) <- parseBinary "str"
     return $ Str val dst
 
+parseSet = do
+    (val, dst) <- parseBinary "set"
+    return $ Set val dst
+
 parseLoad = do
     (addr, dst) <- parseBinary "load"
     return $ Load addr dst
 
 parseJmp = do
-    dst <- parseSingular "jmp"
+    dst <- parseUnary "jmp"
     return $ Jmp dst
 
 parseAdd = do
@@ -64,6 +75,7 @@ parseBeq = do
     return $ Beq r1 r2 addr
 
 parseInst = parseMov
+        <|> parseNop
         <|> parseJmp
         <|> parseAdd
         <|> parseSub
@@ -72,6 +84,7 @@ parseInst = parseMov
         <|> parseBeq
         <|> parseLoad
         <|> parseStr
+        <|> parseSet
 
 parseConfig = do
     (registers, memory) <- parseBinary ""

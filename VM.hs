@@ -32,7 +32,8 @@ load addr dst (CPU rs mem) = CPU (replace dst (mem !! addr) rs) mem
 
 mov = modify id
 
-str a idx (CPU rs mem) = CPU (replace idx (Register a) rs) mem
+set a idx (CPU rs mem) = CPU (replace idx (Register a) rs) mem
+str a idx (CPU rs mem) = CPU rs (replace idx (Register a) mem)
 
 add :: (Num a) => Int -> Int -> Int -> CPU a -> CPU a
 add = combine (+)
@@ -55,7 +56,8 @@ and = combine (.&.)
 or :: (Bits a) => Int -> Int -> Int -> CPU a -> CPU a
 or = combine (.|.)
 
-data Instruction a = Mov Int Int
+data Instruction a = Nop
+                   | Mov Int Int
                    | Load Int Int
                    | Add Int Int Int
                    | Sub Int Int Int
@@ -63,6 +65,7 @@ data Instruction a = Mov Int Int
                    | Jmp Int
                    | Bne Int Int Int
                    | Beq Int Int Int
+                   | Set a Int 
                    | Str a Int 
                    deriving (Show, Eq)
 
@@ -84,6 +87,8 @@ run (Program (i:is) is') cpu       = run (Program is is') (runInstruction i cpu)
           runInstruction (Sub r1 r2 dst) cpu = sub r1 r2 dst cpu
           runInstruction (Mul r1 r2 dst) cpu = mul r1 r2 dst cpu
           runInstruction (Str a idx) cpu = str a idx cpu
+          runInstruction (Set a idx) cpu = set a idx cpu
+          runInstruction Nop cpu = cpu
 
 branchIf f (Program (i:is) is') r1 r2 idx cpu@(CPU rs mem)
     | f (fromValue r1 rs) (fromValue r2 rs) = run (Program ((Jmp idx):is) is') cpu
