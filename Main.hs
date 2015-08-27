@@ -14,4 +14,4 @@ main = do
         Right (cpu, instructions) -> do
             putStrLn $ "Current CPU: \n" ++ (show cpu)
             putStrLn . unlines . (map show) $ instructions
-            -- putStrLn $ "Final CPU: \n" ++ (show $ run (fromInstructions instructions) cpu)
+            putStrLn $ "Final CPU: \n" ++ (show $ run (fromInstructions instructions) cpu)

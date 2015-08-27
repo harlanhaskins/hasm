@@ -87,11 +87,15 @@ parseMul = do
     return $ Mul r1 r2 dst
 
 parseBne = do
-    (r1, r2, addr) <- parseTernary "bne"
+    (r1, r2) <- parseBinary "bne"
+    skipSpace
+    addr <- decimal
     return $ Bne r1 r2 addr
 
 parseBeq = do
-    (r1, r2, addr) <- parseTernary "beq"
+    (r1, r2) <- parseBinary "beq"
+    skipSpace
+    addr <- decimal
     return $ Beq r1 r2 addr
 
 parseInst = parseMov
