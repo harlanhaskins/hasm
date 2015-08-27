@@ -34,7 +34,7 @@ executable Hasm
   other-extensions: OverloadedStrings
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.8 && <4.9, attoparsec, bytestring
+  build-depends:       base >=4.8 && <4.9, attoparsec, bytestring, VM
   
   -- Base language which the package is written in.
   default-language:    Haskell2010
