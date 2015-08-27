@@ -8,6 +8,24 @@ import VM
 caseChar c = char (toLower c) <|> char (toUpper c)
 caseString s = try (mapM caseChar s) <?> "\"" ++ s ++ "\""
 
+parseReg = do
+    char 'r'
+    val <- decimal
+    return (Reg val)
+
+parseMem = do
+    char 'm'
+    val <- decimal
+    return (Mem val)
+
+parseVal = do
+    val <- decimal
+    return (Val val)
+
+parseArg = parseReg 
+       <|> parseMem
+       <|> parseVal
+
 parseNoArgs inst = do
     skipSpace
     caseString inst
@@ -15,19 +33,19 @@ parseNoArgs inst = do
 
 parseUnary inst = do
     parseNoArgs inst
-    src <- decimal
+    src <- parseArg
     return src
 
 parseBinary inst = do
     src <- parseUnary inst
     skipSpace
-    dst <- decimal
+    dst <- parseArg
     return (src, dst)
 
 parseTernary inst = do
     (r1, r2) <- parseBinary inst
     skipSpace
-    dst <- decimal
+    dst <- parseArg
     return (r1, r2, dst)
 
 parseNop = do
@@ -38,20 +56,10 @@ parseMov = do
     (src, dst) <- parseBinary "mov"
     return $ Mov src dst
 
-parseStr = do
-    (val, dst) <- parseBinary "str"
-    return $ Str val dst
-
-parseSet = do
-    (val, dst) <- parseBinary "set"
-    return $ Set val dst
-
-parseLoad = do
-    (addr, dst) <- parseBinary "load"
-    return $ Load addr dst
-
 parseJmp = do
-    dst <- parseUnary "jmp"
+    skipSpace 
+    caseString "jmp"
+    dst <- decimal
     return $ Jmp dst
 
 parseAdd = do
@@ -97,12 +105,12 @@ parseInst = parseMov
         <|> parseMul
         <|> parseBne
         <|> parseBeq
-        <|> parseLoad
-        <|> parseStr
-        <|> parseSet
 
 parseConfig = do
-    (registers, memory) <- parseBinary ""
+    skipSpace
+    registers <- decimal
+    skipSpace
+    memory <- decimal
     return $ fromLists (listOf registers 0) (listOf memory 0)
 
 listOf n v = Prelude.take n . cycle $ [v]

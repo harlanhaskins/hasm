@@ -1,11 +1,11 @@
 3 3
 
-set 8 0
-set 2 1
-set 4 2
-str 1 0
-str 2 1
-mul 1 1 1
-bne 0 1 8
+mov 8 r0
+mov 2 r1
+mov 4 r2
+mov 1 m0
+mov 2 m1
+mul 1 1 r1
+bne 0 1 r8
 jmp 5
-str 4444 0
+mov 4444 m0

@@ -24,6 +24,7 @@ The recognized instructions are:
 -- register storage
 mov r1 r2
 load addr reg
+nop
 
 -- arithmetic
 add r1 r2 dst

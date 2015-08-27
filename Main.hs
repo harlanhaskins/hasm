@@ -13,5 +13,5 @@ main = do
         Left err -> putStrLn $ "Error parsing: " ++ err
         Right (cpu, instructions) -> do
             putStrLn $ "Current CPU: \n" ++ (show cpu)
-            -- putStrLn . unlines . (map show) $ instructions
-            putStrLn $ "Final CPU: \n" ++ (show $ run (fromInstructions instructions) cpu)
+            putStrLn . unlines . (map show) $ instructions
+            -- putStrLn $ "Final CPU: \n" ++ (show $ run (fromInstructions instructions) cpu)

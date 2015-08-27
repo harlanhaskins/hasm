@@ -2,38 +2,19 @@ module VM where
 
 import qualified Data.Bits as B
 
-data Register a = Register a deriving (Show, Eq)
+data CPU a = CPU [a] [a] deriving (Show, Eq)
 
-instance Functor Register where
-    fmap f (Register v) = Register (f v)
+fromLists rs mems = CPU rs mems
 
-instance Applicative Register where
-    pure = Register
-    Register f <*> Register v = Register (f v)
-
-instance Monad Register where
-    return = pure
-    Register v >>= f = f v
-
-data CPU a = CPU [Register a] [Register a] deriving (Show, Eq)
-
-fromValue i rs = (value . (!! i)) rs
-value (Register v) = v
-
-fromLists rs mems = CPU (toRegisters rs) (toRegisters mems)
-    where toRegisters = (map Register) 
-
+{-
+combine f (Reg r1) (Reg r2) (Reg dst) (CPU rs mem) = CPU (replace dst final rs) mem
 combine f r1 r2 dst (CPU rs mem) = CPU (replace dst final rs) mem
-    where final = pure $ f (fromValue r1 rs) (fromValue r2 rs)
+combine f r1 r2 dst (CPU rs mem) = CPU (replace dst final rs) mem
+    where final = pure $ f (rs !! r1) (rs !! r2)
 
 modify f src dst cpu = combine (\x _ -> f x) src dst dst cpu
 
-load addr dst (CPU rs mem) = CPU (replace dst (mem !! addr) rs) mem
-
 mov = modify id
-
-set a idx (CPU rs mem) = CPU (replace idx (Register a) rs) mem
-str a idx (CPU rs mem) = CPU rs (replace idx (Register a) mem)
 
 add :: (Num a) => Int -> Int -> Int -> CPU a -> CPU a
 add = combine (+)
@@ -55,21 +36,21 @@ and = combine (B..&.)
 
 or :: (B.Bits a) => Int -> Int -> Int -> CPU a -> CPU a
 or = combine (B..|.)
+-}
+
+data Arg a = Reg Int | Mem Int | Val a deriving (Show, Eq)
 
 data Instruction a = Nop
-                   | Mov Int Int
-                   | Load Int Int
-                   | Add Int Int Int
-                   | Sub Int Int Int
-                   | Mul Int Int Int
-                   | And Int Int Int
-                   | Or Int Int Int
-                   | Xor Int Int Int
+                   | Mov (Arg a) (Arg a)
+                   | Add (Arg a) (Arg a) (Arg a)
+                   | Sub (Arg a) (Arg a) (Arg a)
+                   | Mul (Arg a) (Arg a) (Arg a)
+                   | And (Arg a) (Arg a) (Arg a)
+                   | Or (Arg a) (Arg a) (Arg a)
+                   | Xor (Arg a) (Arg a) (Arg a)
                    | Jmp Int
-                   | Bne Int Int Int
-                   | Beq Int Int Int
-                   | Set a Int 
-                   | Str a Int 
+                   | Bne (Arg a) (Arg a) (Arg a)
+                   | Beq (Arg a) (Arg a) (Arg a)
                    deriving (Show, Eq)
 
 data Program a = Program { remaining :: [Instruction a]
@@ -77,7 +58,7 @@ data Program a = Program { remaining :: [Instruction a]
                          } deriving (Show, Eq)
 
 fromInstructions xs = Program xs xs
-
+{-
 run :: (Num a, B.Bits a) => Program a -> CPU a -> CPU a
 run (Program [] _) cpu             = cpu
 run (Program ((Jmp idx):_) is) cpu = run (Program (drop idx is) is) cpu
@@ -97,8 +78,9 @@ run (Program (i:is) is') cpu       = run (Program is is') (runInstruction i cpu)
           runInstruction Nop cpu = cpu
 
 branchIf f (Program (i:is) is') r1 r2 idx cpu@(CPU rs mem)
-    | f (fromValue r1 rs) (fromValue r2 rs) = run (Program ((Jmp idx):is) is') cpu
+    | f (rs !! r1) (rs !! r2) = run (Program ((Jmp idx):is) is') cpu
     | otherwise                             = run (Program is is') cpu
+-}
 
 replace _ item [_] = [item]
 replace n item ls = a ++ (item:b)
