@@ -1,14 +1,14 @@
 HASM Grammar
 
-loc  := r<num> | m<num>
-arg  := <loc> | <num>
-no-arg-inst := nop
-combine-inst := add | sub | mul | xor | or | and
-mov-expr := mov <loc> <arg>
-branch-inst := beq | bne
-inst := <combine-inst> | <branch-inst> | <no-arg-inst>
-unary-expr := <inst> <arg>
-binary-expr := <unary-expr> <arg>
-ternary-expr := <binary-expr> <arg>
-branch-expr := <branch-inst> <arg> <arg> <num>
-combine-expr := <combine-inst> <loc> <loc> <arg> 
+loc          ::= r<num> | m<num>
+arg          ::= <loc> | <num>
+no-arg-inst  ::= nop
+combine-inst ::= add | sub | mul | xor | or | and
+mov-expr     ::= mov <loc> <arg>
+branch-inst  ::= beq | bne
+inst         ::= <combine-inst> | <branch-inst> | <no-arg-inst>
+unary-expr   ::= <inst> <arg>
+binary-expr  ::= <unary-expr> <arg>
+ternary-expr ::= <binary-expr> <arg>
+branch-expr  ::= <branch-inst> <arg> <arg> <num>
+combine-expr ::= <combine-inst> <loc> <loc> <arg> 

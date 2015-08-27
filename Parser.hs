@@ -8,10 +8,12 @@ import VM
 caseChar c = char (toLower c) <|> char (toUpper c)
 caseString s = try (mapM caseChar s) <?> "\"" ++ s ++ "\""
 
-parseReg = (char 'r' *> decimal) >>= return . Reg
-parseMem = (char 'm' *> decimal) >>= return . Mem
+spaceSkip = skipMany $ satisfy (`elem` ['\t', ' '])
 
-parseVal = decimal >>= return . Val
+parseReg = Reg <$> (char 'r' *> decimal)
+parseMem = Mem <$> (char 'm' *> decimal)
+
+parseVal = Val <$> decimal
 
 parseLoc = parseReg
        <|> parseMem
