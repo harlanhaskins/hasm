@@ -42,7 +42,7 @@ parseBinary inst = do
 
 parseTernary inst = do
     parseNoArgs inst
-    arg1 <- parseLoc 
+    arg1 <- parseLoc
     skipSpace
     arg2 <- parseArg
     skipSpace
@@ -69,7 +69,7 @@ skipComments = do
 parseEndOfLine = skipSpace *> endOfLine --(skipComments <|> endOfLine)
 
 parseNop = do
-    parseUnary "nop" 
+    parseNoArgs "nop"
     return Nop
 
 parseInc = do
@@ -132,4 +132,5 @@ parseFile = do
     cpu <- parseConfig
     skipSpace
     instructions <- many $ parseInst <* endOfLine
+    -- endOfInput
     return (cpu, instructions)
