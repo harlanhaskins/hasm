@@ -2,7 +2,9 @@ module VM where
 
 import qualified Data.Bits as B
 
-data CPU a = CPU [a] [a] deriving (Show, Eq)
+data CPU a = CPU [a] [a] deriving (Eq)
+instance (Show a) => Show (CPU a) where
+    show (CPU rs _) = "CPU " ++ (show rs)
 
 data Arg a = Reg Int | Mem Int | Val a deriving (Show, Eq)
 

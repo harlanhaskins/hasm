@@ -2,10 +2,13 @@
 
 mov r0 8
 mov r1 2
+dec r1
 mov r2 4
 mov m0 1
 mov m1 2
-mul r1 r1 r1 
 bne r0 r1 8
+add r1 r1 r1 
+sub r1 r1 r1 
+mul r1 r1 r1 
 jmp 5
-mov m0 4444 
+mov r0 9

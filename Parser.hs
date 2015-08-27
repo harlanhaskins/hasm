@@ -8,22 +8,15 @@ import VM
 caseChar c = char (toLower c) <|> char (toUpper c)
 caseString s = try (mapM caseChar s) <?> "\"" ++ s ++ "\""
 
-parseReg = do
-    char 'r'
-    val <- decimal
-    return (Reg val)
+parseReg = (char 'r' *> decimal) >>= return . Reg
+parseMem = (char 'm' *> decimal) >>= return . Mem
 
-parseMem = do
-    char 'm'
-    val <- decimal
-    return (Mem val)
+parseVal = decimal >>= return . Val
 
-parseVal = do
-    val <- decimal
-    return (Val val)
-
-parseArg = parseReg 
+parseLoc = parseReg
        <|> parseMem
+
+parseArg = parseLoc
        <|> parseVal
 
 parseNoArgs inst = do
@@ -33,89 +26,102 @@ parseNoArgs inst = do
 
 parseUnary inst = do
     parseNoArgs inst
-    src <- parseArg
-    return src
+    arg <- parseArg
+    skipSpace
+    return arg
 
 parseBinary inst = do
-    src <- parseUnary inst
+    parseNoArgs inst
+    arg1 <- parseArg
     skipSpace
-    dst <- parseArg
-    return (src, dst)
+    arg2 <- parseArg
+    skipSpace
+    return (arg1, arg2)
 
 parseTernary inst = do
-    (r1, r2) <- parseBinary inst
+    parseNoArgs inst
+    arg1 <- parseLoc 
     skipSpace
-    dst <- parseArg
-    return (r1, r2, dst)
+    arg2 <- parseArg
+    skipSpace
+    arg3 <- parseArg 
+    skipSpace
+    return (arg1, arg2, arg3)
+
+fromTernaryTuple (inst, c) = do
+    (dst, r1, r2) <- parseTernary inst
+    return $ c dst r1 r2
+
+ternaryParsers = map fromTernaryTuple [("add", Add)
+                                      ,("and", And)
+                                      ,("or", Or)
+                                      ,("xor", Xor)
+                                      ,("sub", Sub)
+                                      ,("mul", Mul)]
+
+skipComments = do
+    char ';' 
+    manyTill' anyChar (try endOfLine)
+    return ()
+
+parseEndOfLine = skipSpace *> endOfLine --(skipComments <|> endOfLine)
 
 parseNop = do
     parseUnary "nop" 
     return Nop
 
+parseInc = do
+    parseNoArgs "inc"
+    reg <- parseLoc
+    return $ Add reg reg (Val 1)
+
+parseDec = do
+    parseNoArgs "dec"
+    reg <- parseLoc
+    return $ Sub reg reg (Val 1)
+
 parseMov = do
-    (src, dst) <- parseBinary "mov"
-    return $ Mov src dst
+    parseNoArgs "mov"
+    dst <- parseLoc
+    skipSpace
+    src <- parseArg
+    return $ Mov dst src
 
 parseJmp = do
-    skipSpace 
-    caseString "jmp"
+    parseNoArgs "jmp"
     dst <- decimal
     return $ Jmp dst
 
-parseAdd = do
-    (r1, r2, dst) <- parseTernary "add"
-    return $ Add r1 r2 dst
-
-parseOr = do
-    (r1, r2, dst) <- parseTernary "or"
-    return $ Or r1 r2 dst
-
-parseXor = do
-    (r1, r2, dst) <- parseTernary "add"
-    return $ Xor r1 r2 dst
-
-parseAnd = do
-    (r1, r2, dst) <- parseTernary "add"
-    return $ And r1 r2 dst
-
-parseSub = do
-    (r1, r2, dst) <- parseTernary "sub"
-    return $ Sub r1 r2 dst
-
-parseMul = do
-    (r1, r2, dst) <- parseTernary "mul"
-    return $ Mul r1 r2 dst
-
 parseBne = do
     (r1, r2) <- parseBinary "bne"
-    skipSpace
     addr <- decimal
     return $ Bne r1 r2 addr
 
 parseBeq = do
     (r1, r2) <- parseBinary "beq"
-    skipSpace
     addr <- decimal
     return $ Beq r1 r2 addr
 
 parseInst = parseMov
         <|> parseNop
         <|> parseJmp
-        <|> parseAdd
-        <|> parseAnd
-        <|> parseOr
-        <|> parseXor
-        <|> parseSub
-        <|> parseMul
+        <|> parseInc
+        <|> parseDec
+        <|> choice ternaryParsers
         <|> parseBne
         <|> parseBeq
+
+parseLine = do
+    inst <- parseInst
+    skipComments
+    return inst
 
 parseConfig = do
     skipSpace
     registers <- decimal
     skipSpace
     memory <- decimal
-    return $ fromLists (listOf registers 0) (listOf memory 0)
+    return $ CPU (listOf registers 0) (listOf memory 0)
 
 listOf n v = Prelude.take n . cycle $ [v]
 
