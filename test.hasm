@@ -4,7 +4,6 @@ mov r0 10                           ; Hello
 mov r1 10
 mov r2 10
 bne r1 r2 7
-mul r0 r1 r2
+mul m0 r1 r2
 mov r1 m0
-jmp 3
 mov m0 0
