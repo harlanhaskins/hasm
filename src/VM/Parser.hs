@@ -63,13 +63,6 @@ ternaryParsers = map fromTernaryTuple [("add", Add)
                                       ,("sub", Sub)
                                       ,("mul", Mul)]
 
-skipComments = do
-    char ';' 
-    manyTill' anyChar (try endOfLine)
-    return ()
-
-parseEndOfLine = skipSpace *> endOfLine --(skipComments <|> endOfLine)
-
 parseNop = do
     parseNoArgs "nop"
     return Nop
@@ -115,10 +108,15 @@ parseInst = parseMov
         <|> parseBne
         <|> parseBeq
 
-parseLine = do
-    inst <- parseInst
-    skipComments
-    return inst
+skipComments = do
+    skipSpace
+    char ';' 
+    manyTill' anyChar (try endOfLine)
+    return ()
+
+parseEndOfLine = skipComments <|> skipSpace
+
+parseLine = parseInst <* parseEndOfLine
 
 parseConfig = do
     skipSpace
@@ -133,6 +131,6 @@ parseFile :: Parser (CPU Int, [Instruction Int])
 parseFile = do
     cpu <- parseConfig
     skipSpace
-    instructions <- many $ parseInst <* endOfLine
-    -- endOfInput
+    instructions <- many $ parseLine
+    --endOfInput
     return (cpu, instructions)

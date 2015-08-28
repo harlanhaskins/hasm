@@ -57,12 +57,13 @@ or = combine (B..|.)
 
 recount (CPU _ rs mem) c = CPU c rs mem
 
--- run :: (Num a, B.Bits a) => V.Vector (Instruction a) -> CPU a -> CPU a
+run :: V.Vector (Instruction Int) -> CPU Int -> CPU Int
 run is cpu@(CPU c _ _) = 
     case (is V.!? c) of         
         Nothing -> cpu
         (Just i) -> run is $ runInstruction i cpu
 
+runPrint :: V.Vector (Instruction Int) -> CPU Int -> IO ()
 runPrint is cpu@(CPU c _ _) = do
     case (is V.!? c) of
         Nothing -> print cpu
@@ -72,17 +73,18 @@ runPrint is cpu@(CPU c _ _) = do
             print final
             runPrint is final
 
-runInstruction (Mov dst src) cpu        = mov dst src cpu
-runInstruction (Add dst r1 r2) cpu      = add dst r1 r2 cpu
-runInstruction (Sub dst r1 r2) cpu      = sub dst r1 r2 cpu
-runInstruction (Mul dst r1 r2) cpu      = mul dst r1 r2 cpu
-runInstruction (And dst r1 r2) cpu      = VM.Core.and dst r1 r2 cpu
-runInstruction (Xor dst r1 r2) cpu      = xor dst r1 r2 cpu
-runInstruction (Or dst r1 r2) cpu       = VM.Core.or dst r1 r2 cpu
-runInstruction (Jmp idx) cpu            = recount cpu idx
-runInstruction (Bne r1 r2 idx) cpu      = branchIf (/=) r1 r2 idx cpu
-runInstruction (Beq r1 r2 idx) cpu      = branchIf (==) r1 r2 idx cpu
-runInstruction Nop cpu                  = cpu
+runInstruction :: Instruction Int -> CPU Int -> CPU Int
+runInstruction (Mov dst src) cpu   = mov dst src cpu
+runInstruction (Add dst r1 r2) cpu = add dst r1 r2 cpu
+runInstruction (Sub dst r1 r2) cpu = sub dst r1 r2 cpu
+runInstruction (Mul dst r1 r2) cpu = mul dst r1 r2 cpu
+runInstruction (And dst r1 r2) cpu = VM.Core.and dst r1 r2 cpu
+runInstruction (Xor dst r1 r2) cpu = xor dst r1 r2 cpu
+runInstruction (Or dst r1 r2) cpu  = VM.Core.or dst r1 r2 cpu
+runInstruction (Jmp idx) cpu       = recount cpu idx
+runInstruction (Bne r1 r2 idx) cpu = branchIf (/=) r1 r2 idx cpu
+runInstruction (Beq r1 r2 idx) cpu = branchIf (==) r1 r2 idx cpu
+runInstruction Nop cpu@(CPU c _ _) = recount cpu (c+1)
 
 branchIf f r1 r2 idx cpu@(CPU c rs mem)
     | f (valOf r1 cpu) (valOf r2 cpu) = recount cpu idx
