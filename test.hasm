@@ -1,7 +1,7 @@
 3 3
 
 mov r0 8
-beq r0 0 4
+beq r0 4 4
 dec r0
 jmp 1
 nop

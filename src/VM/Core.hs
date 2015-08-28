@@ -27,8 +27,6 @@ data Program a = Program { remaining :: [Instruction a]
 
 fromInstructions xs = Program xs xs
 
-fromLists rs mems = CPU rs mems
-
 replace _ item [_] = [item]
 replace n item ls = a ++ (item:b)
     where (a, (_:b)) = splitAt n ls
