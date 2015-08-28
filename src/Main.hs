@@ -1,10 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import Parser
 import System.Environment
-import VM
 import Data.Attoparsec.ByteString.Char8 (parseOnly)
 import qualified Data.ByteString as B
+
+import VM.Core
+import VM.Parser
 
 main = do
     [filename] <- getArgs

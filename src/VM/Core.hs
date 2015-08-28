@@ -1,4 +1,4 @@
-module VM where
+module VM.Core where
 
 import qualified Data.Bits as B
 
@@ -75,9 +75,9 @@ run (Program (i:is) is') cpu       = run (Program is is') (runInstruction i cpu)
           runInstruction (Add dst r1 r2) cpu = add dst r1 r2 cpu
           runInstruction (Sub dst r1 r2) cpu = sub dst r1 r2 cpu
           runInstruction (Mul dst r1 r2) cpu = mul dst r1 r2 cpu
-          runInstruction (And dst r1 r2) cpu = VM.and dst r1 r2 cpu
+          runInstruction (And dst r1 r2) cpu = VM.Core.and dst r1 r2 cpu
           runInstruction (Xor dst r1 r2) cpu = xor dst r1 r2 cpu
-          runInstruction (Or dst r1 r2) cpu = VM.or dst r1 r2 cpu
+          runInstruction (Or dst r1 r2) cpu = VM.Core.or dst r1 r2 cpu
           runInstruction Nop cpu = cpu
 
 branchIf f (Program (i:is) is') r1 r2 idx cpu@(CPU rs mem)

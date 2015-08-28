@@ -1,9 +1,10 @@
-module Parser where 
+module VM.Parser where 
 
 import Data.Attoparsec.ByteString.Char8
 import Control.Applicative
 import Data.Char
-import VM
+
+import VM.Core
 
 caseChar c = char (toLower c) <|> char (toUpper c)
 caseString s = try (mapM caseChar s) <?> "\"" ++ s ++ "\""
