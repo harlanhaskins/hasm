@@ -12,3 +12,5 @@ binary-expr  ::= <unary-expr> <arg>
 ternary-expr ::= <binary-expr> <arg>
 branch-expr  ::= <branch-inst> <arg> <arg> <num>
 combine-expr ::= <combine-inst> <loc> <loc> <arg> 
+comment      ::= ;<any><end-of-line>
+line         ::= <comment> | <inst> | <inst><comment>
