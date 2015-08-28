@@ -3,6 +3,7 @@
 import System.Environment
 import Data.Attoparsec.ByteString.Char8 (parseOnly)
 import qualified Data.ByteString as B
+import qualified Data.Vector as V
 
 import VM.Core
 import VM.Parser
@@ -15,4 +16,4 @@ main = do
         Right (cpu, instructions) -> do
             putStrLn $ "Current CPU: \n" ++ (show cpu)
             putStrLn . unlines . (map show) $ instructions
-            putStrLn $ "Final CPU: \n" ++ (show $ run (fromInstructions instructions) cpu)
+            runPrint (V.fromList instructions) cpu

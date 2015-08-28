@@ -1,10 +1,11 @@
 module VM.Core where
 
 import qualified Data.Bits as B
+import qualified Data.Vector as V
 
-data CPU a = CPU [a] [a] deriving (Eq)
+data CPU a = CPU Int (V.Vector Int) (V.Vector Int) deriving (Eq)
 instance (Show a) => Show (CPU a) where
-    show (CPU rs _) = "CPU " ++ (show rs)
+    show (CPU c rs _) = "CPU " ++ (show c) ++ " " ++ (show rs)
 
 data Arg a = Reg Int | Mem Int | Val a deriving (Show, Eq)
 
@@ -21,64 +22,69 @@ data Instruction a = Nop
                    | Beq (Arg a) (Arg a) Int
                    deriving (Show, Eq)
 
-data Program a = Program { remaining :: [Instruction a]
-                         , instructions :: [Instruction a]
-                         } deriving (Show, Eq)
-
-fromInstructions xs = Program xs xs
-
-replace _ item [_] = [item]
-replace n item ls = a ++ (item:b)
-    where (a, (_:b)) = splitAt n ls
-
-valOf (Reg r) (CPU rs _) = rs !! r
-valOf (Mem m) (CPU _ mem) = mem !! m
+valOf (Reg r) (CPU _ rs _) = rs V.! r
+valOf (Mem m) (CPU _ _ mem) = mem V.! m
 valOf (Val a) _ = a
 
 final f r1 r2 cpu = f (valOf r1 cpu) (valOf r2 cpu)
+updatePair dst f r1 r2 cpu = V.fromList [(dst, (final f r1 r2 cpu))]
 
-combine f (Reg dst) r1 r2 cpu@(CPU rs mem) = CPU (replace dst (final f r1 r2 cpu) rs) mem
-combine f (Mem dst) r1 r2 cpu@(CPU rs mem) = CPU rs (replace dst (final f r1 r2 cpu) mem)
+combine f (Reg dst) r1 r2 cpu@(CPU c rs mem) = CPU (c+1) (V.update rs (updatePair dst f r1 r2 cpu)) mem
+combine f (Mem dst) r1 r2 cpu@(CPU c rs mem) = CPU (c+1) rs (V.update mem (updatePair dst f r1 r2 cpu))
 
 mov dst src cpu = combine (\x _ -> x) dst src dst cpu
 
-add :: (Num a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
+-- add :: (Num a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
 add = combine (+)
 
-sub :: (Num a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
+-- sub :: (Num a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
 sub = combine (-)
 
-mul :: (Num a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
+-- mul :: (Num a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
 mul = combine (*)
 
-div :: (Fractional a, Num a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
-div = combine (/)
+-- div :: (Fractional a, Num a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
+-- div = combine (/)
 
-xor :: (B.Bits a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
+-- xor :: (B.Bits a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
 xor = combine B.xor
 
-and :: (B.Bits a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
+-- and :: (B.Bits a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
 and = combine (B..&.)
 
-or :: (B.Bits a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
+-- or :: (B.Bits a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
 or = combine (B..|.)
 
-run :: (Num a, B.Bits a) => Program a -> CPU a -> CPU a
-run (Program [] _) cpu             = cpu
-run (Program ((Jmp idx):_) is) cpu = run (Program (drop idx is) is) cpu
-run p@(Program ((Bne r1 r2 idx):_) _) cpu = branchIf (/=) p r1 r2 idx cpu
-run p@(Program ((Beq r1 r2 idx):_) _) cpu = branchIf (==) p r1 r2 idx cpu
-run (Program (i:is) is') cpu       = run (Program is is') (runInstruction i cpu)
-    where runInstruction (Mov dst src)   cpu = mov dst src cpu
-          runInstruction (Add dst r1 r2) cpu = add dst r1 r2 cpu
-          runInstruction (Sub dst r1 r2) cpu = sub dst r1 r2 cpu
-          runInstruction (Mul dst r1 r2) cpu = mul dst r1 r2 cpu
-          runInstruction (And dst r1 r2) cpu = VM.Core.and dst r1 r2 cpu
-          runInstruction (Xor dst r1 r2) cpu = xor dst r1 r2 cpu
-          runInstruction (Or dst r1 r2) cpu = VM.Core.or dst r1 r2 cpu
-          runInstruction Nop cpu = cpu
+recount (CPU _ rs mem) c = CPU c rs mem
 
-branchIf f (Program (i:is) is') r1 r2 idx cpu@(CPU rs mem)
-    | f (valOf r1 cpu) (valOf r2 cpu) = run (Program ((Jmp idx):is) is') cpu
-    | otherwise                             = run (Program is is') cpu
+-- run :: (Num a, B.Bits a) => V.Vector (Instruction a) -> CPU a -> CPU a
+run is cpu@(CPU c _ _) = 
+    case (is V.!? c) of         
+        Nothing -> cpu
+        (Just i) -> run is $ runInstruction i cpu
+
+runPrint is cpu@(CPU c _ _) = do
+    case (is V.!? c) of
+        Nothing -> print cpu
+        (Just i) -> do
+            print i
+            let final = runInstruction i cpu
+            print final
+            runPrint is final
+
+runInstruction (Mov dst src) cpu        = mov dst src cpu
+runInstruction (Add dst r1 r2) cpu      = add dst r1 r2 cpu
+runInstruction (Sub dst r1 r2) cpu      = sub dst r1 r2 cpu
+runInstruction (Mul dst r1 r2) cpu      = mul dst r1 r2 cpu
+runInstruction (And dst r1 r2) cpu      = VM.Core.and dst r1 r2 cpu
+runInstruction (Xor dst r1 r2) cpu      = xor dst r1 r2 cpu
+runInstruction (Or dst r1 r2) cpu       = VM.Core.or dst r1 r2 cpu
+runInstruction (Jmp idx) cpu            = recount cpu idx
+runInstruction (Bne r1 r2 idx) cpu      = branchIf (/=) r1 r2 idx cpu
+runInstruction (Beq r1 r2 idx) cpu      = branchIf (==) r1 r2 idx cpu
+runInstruction Nop cpu                  = cpu
+
+branchIf f r1 r2 idx cpu@(CPU c rs mem)
+    | f (valOf r1 cpu) (valOf r2 cpu) = recount cpu idx
+    | otherwise                       = CPU (c+1) rs mem
 

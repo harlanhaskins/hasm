@@ -3,6 +3,7 @@ module VM.Parser where
 import Data.Attoparsec.ByteString.Char8
 import Control.Applicative
 import Data.Char
+import qualified Data.Vector as V
 
 import VM.Core
 
@@ -124,7 +125,7 @@ parseConfig = do
     registers <- decimal
     skipSpace
     memory <- decimal
-    return $ CPU (listOf registers 0) (listOf memory 0)
+    return $ CPU 0 (V.replicate registers 0) (V.replicate memory 0)
 
 listOf n v = Prelude.take n . cycle $ [v]
 
