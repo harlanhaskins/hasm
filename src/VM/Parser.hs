@@ -133,6 +133,6 @@ parseFile :: Parser (CPU Int, [Instruction Int])
 parseFile = do
     cpu <- parseConfig
     skipSpace
-    instructions <- many $ parseInst <* endOfLine
-    -- endOfInput
+    instructions <- many $ parseInst
+    endOfInput
     return (cpu, instructions)
