@@ -52,17 +52,6 @@ parseTernary inst = do
     skipSpace
     return (arg1, arg2, arg3)
 
-fromTernaryTuple (inst, c) = do
-    (dst, r1, r2) <- parseTernary inst
-    return $ c dst r1 r2
-
-ternaryParsers = map fromTernaryTuple [("add", Add)
-                                      ,("and", And)
-                                      ,("or", Or)
-                                      ,("xor", Xor)
-                                      ,("sub", Sub)
-                                      ,("mul", Mul)]
-
 parseNop = do
     parseNoArgs "nop"
     return Nop
@@ -89,15 +78,32 @@ parseJmp = do
     dst <- decimal
     return $ Jmp dst
 
-parseBne = do
-    (r1, r2) <- parseBinary "bne"
+parseBranch inst c = do
+    (r1, r2) <- parseBinary inst
     addr <- decimal
-    return $ Bne r1 r2 addr
+    return (r1, r2, addr)
 
-parseBeq = do
-    (r1, r2) <- parseBinary "beq"
-    addr <- decimal
-    return $ Beq r1 r2 addr
+fromTernaryTuple (inst, c) = do
+    (dst, r1, r2) <- parseTernary inst
+    return $ c dst r1 r2
+
+ternaryParsers = map fromTernaryTuple [("add", Add)
+                                      ,("and", And)
+                                      ,("or", Or)
+                                      ,("xor", Xor)
+                                      ,("sll", Sll)
+                                      ,("srl", Srl)
+                                      ,("sub", Sub)
+                                      ,("mul", Mul)]
+
+branchParsers = map fromBranchTuple   [("beq", Beq)
+                                      ,("bne", Bne)
+                                      ,("blt", Blt)
+                                      ,("bgt", Bgt)]
+
+fromBranchTuple (inst, c) = do
+    (r1, r2, addr) <- parseBranch inst c
+    return $ c r1 r2 addr
 
 parseInst = parseMov
         <|> parseNop
@@ -105,8 +111,7 @@ parseInst = parseMov
         <|> parseInc
         <|> parseDec
         <|> choice ternaryParsers
-        <|> parseBne
-        <|> parseBeq
+        <|> choice branchParsers
 
 skipComments = do
     skipSpace

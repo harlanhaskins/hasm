@@ -17,9 +17,13 @@ data Instruction a = Nop
                    | And (Arg a) (Arg a) (Arg a)
                    | Or (Arg a) (Arg a) (Arg a)
                    | Xor (Arg a) (Arg a) (Arg a)
+                   | Sll (Arg a) (Arg a) (Arg a)
+                   | Srl (Arg a) (Arg a) (Arg a)
                    | Jmp Int
                    | Bne (Arg a) (Arg a) Int
                    | Beq (Arg a) (Arg a) Int
+                   | Blt (Arg a) (Arg a) Int
+                   | Bgt (Arg a) (Arg a) Int
                    deriving (Show, Eq)
 
 valOf (Reg r) (CPU _ rs _) = rs V.! r
@@ -33,27 +37,15 @@ combine f (Reg dst) r1 r2 cpu@(CPU c rs mem) = CPU (c+1) (V.update rs (updatePai
 combine f (Mem dst) r1 r2 cpu@(CPU c rs mem) = CPU (c+1) rs (V.update mem (updatePair dst f r1 r2 cpu))
 
 mov dst src cpu = combine (\x _ -> x) dst src dst cpu
-
--- add :: (Num a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
 add = combine (+)
-
--- sub :: (Num a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
 sub = combine (-)
-
--- mul :: (Num a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
 mul = combine (*)
-
--- div :: (Fractional a, Num a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
 -- div = combine (/)
-
--- xor :: (B.Bits a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
 xor = combine B.xor
-
--- and :: (B.Bits a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
 and = combine (B..&.)
-
--- or :: (B.Bits a) => Arg a -> Arg a -> Arg a -> CPU a -> CPU a
-or = combine (B..|.)
+or  = combine (B..|.)
+sll = combine B.shiftL
+srl = combine B.shiftR
 
 recount (CPU _ rs mem) c = CPU c rs mem
 
@@ -81,9 +73,13 @@ runInstruction (Mul dst r1 r2) cpu = mul dst r1 r2 cpu
 runInstruction (And dst r1 r2) cpu = VM.Core.and dst r1 r2 cpu
 runInstruction (Xor dst r1 r2) cpu = xor dst r1 r2 cpu
 runInstruction (Or dst r1 r2) cpu  = VM.Core.or dst r1 r2 cpu
+runInstruction (Sll dst r1 r2) cpu = sll dst r1 r2 cpu
+runInstruction (Srl dst r1 r2) cpu = srl dst r1 r2 cpu
 runInstruction (Jmp idx) cpu       = recount cpu idx
 runInstruction (Bne r1 r2 idx) cpu = branchIf (/=) r1 r2 idx cpu
 runInstruction (Beq r1 r2 idx) cpu = branchIf (==) r1 r2 idx cpu
+runInstruction (Blt r1 r2 idx) cpu = branchIf (<) r1 r2 idx cpu
+runInstruction (Bgt r1 r2 idx) cpu = branchIf (>) r1 r2 idx cpu
 runInstruction Nop cpu@(CPU c _ _) = recount cpu (c+1)
 
 branchIf f r1 r2 idx cpu@(CPU c rs mem)
