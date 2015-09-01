@@ -8,6 +8,7 @@ instance (Show a) => Show (CPU a) where
     show (CPU c rs _) = "CPU " ++ (show c) ++ " " ++ (show rs)
 
 data Arg a = Reg Int | Mem Int | Val a deriving (Show, Eq)
+data Label = Lbl String | Addr Int deriving (Show, Eq)
 
 data Instruction a = Nop
                    | Mov (Arg a) (Arg a)
@@ -19,11 +20,11 @@ data Instruction a = Nop
                    | Xor (Arg a) (Arg a) (Arg a)
                    | Sll (Arg a) (Arg a) (Arg a)
                    | Srl (Arg a) (Arg a) (Arg a)
-                   | Jmp Int
-                   | Bne (Arg a) (Arg a) Int
-                   | Beq (Arg a) (Arg a) Int
-                   | Blt (Arg a) (Arg a) Int
-                   | Bgt (Arg a) (Arg a) Int
+                   | Jmp Label
+                   | Bne (Arg a) (Arg a) Label 
+                   | Beq (Arg a) (Arg a) Label 
+                   | Blt (Arg a) (Arg a) Label 
+                   | Bgt (Arg a) (Arg a) Label 
                    deriving (Show, Eq)
 
 valOf (Reg r) (CPU _ rs _) = rs V.! r
@@ -75,14 +76,14 @@ runInstruction (Xor dst r1 r2) cpu = xor dst r1 r2 cpu
 runInstruction (Or dst r1 r2) cpu  = VM.Core.or dst r1 r2 cpu
 runInstruction (Sll dst r1 r2) cpu = sll dst r1 r2 cpu
 runInstruction (Srl dst r1 r2) cpu = srl dst r1 r2 cpu
-runInstruction (Jmp idx) cpu       = recount cpu idx
+runInstruction (Jmp (Addr idx)) cpu       = recount cpu idx
 runInstruction (Bne r1 r2 idx) cpu = branchIf (/=) r1 r2 idx cpu
 runInstruction (Beq r1 r2 idx) cpu = branchIf (==) r1 r2 idx cpu
 runInstruction (Blt r1 r2 idx) cpu = branchIf (<) r1 r2 idx cpu
 runInstruction (Bgt r1 r2 idx) cpu = branchIf (>) r1 r2 idx cpu
 runInstruction Nop cpu@(CPU c _ _) = recount cpu (c+1)
 
-branchIf f r1 r2 idx cpu@(CPU c rs mem)
+branchIf f r1 r2 (Addr idx) cpu@(CPU c rs mem)
     | f (valOf r1 cpu) (valOf r2 cpu) = recount cpu idx
     | otherwise                       = CPU (c+1) rs mem
 

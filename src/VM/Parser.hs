@@ -1,8 +1,9 @@
-module VM.Parser where 
+module VM.Parser where
 
 import Data.Attoparsec.ByteString.Char8
 import Control.Applicative
 import Data.Char
+import Data.Either
 import qualified Data.Vector as V
 
 import VM.Core
@@ -17,6 +18,17 @@ parseMem = Mem <$> (char 'm' *> decimal)
 
 parseVal = Val <$> decimal
 
+parseLbl = do
+    label <- manyTill anyChar (char ':')
+    return $ Lbl label
+
+parseAddr = do
+    addr <- decimal
+    return $ Addr addr
+
+parseLabel = parseLbl
+         <|> parseAddr
+
 parseLoc = parseReg
        <|> parseMem
 
@@ -24,32 +36,29 @@ parseArg = parseLoc
        <|> parseVal
 
 parseNoArgs inst = do
-    skipSpace
+    spaceSkip
     caseString inst
-    skipSpace
+    spaceSkip
 
 parseUnary inst = do
     parseNoArgs inst
     arg <- parseArg
-    skipSpace
     return arg
 
 parseBinary inst = do
     parseNoArgs inst
     arg1 <- parseArg
-    skipSpace
+    spaceSkip
     arg2 <- parseArg
-    skipSpace
     return (arg1, arg2)
 
 parseTernary inst = do
     parseNoArgs inst
     arg1 <- parseLoc
-    skipSpace
+    spaceSkip
     arg2 <- parseArg
-    skipSpace
-    arg3 <- parseArg 
-    skipSpace
+    spaceSkip
+    arg3 <- parseArg
     return (arg1, arg2, arg3)
 
 parseNop = do
@@ -69,18 +78,18 @@ parseDec = do
 parseMov = do
     parseNoArgs "mov"
     dst <- parseLoc
-    skipSpace
+    spaceSkip
     src <- parseArg
     return $ Mov dst src
 
 parseJmp = do
     parseNoArgs "jmp"
-    dst <- decimal
+    dst <- parseLabel
     return $ Jmp dst
 
 parseBranch inst c = do
     (r1, r2) <- parseBinary inst
-    addr <- decimal
+    addr <- parseLabel
     return (r1, r2, addr)
 
 fromTernaryTuple (inst, c) = do
@@ -114,28 +123,40 @@ parseInst = parseMov
         <|> choice branchParsers
 
 skipComments = do
-    skipSpace
-    char ';' 
+    spaceSkip
+    char ';'
     manyTill' anyChar (try endOfLine)
     return ()
 
-parseEndOfLine = skipComments <|> skipSpace
+parseEndOfLine = skipComments <|> (spaceSkip <* endOfLine)
 
-parseLine = parseInst <* parseEndOfLine
+parseLine = Left <$> parseLabel
+        <|> Right <$> (parseInst <* parseEndOfLine)
 
 parseConfig = do
-    skipSpace
+    spaceSkip
     registers <- decimal
-    skipSpace
+    spaceSkip
     memory <- decimal
     return $ CPU 0 (V.replicate registers 0) (V.replicate memory 0)
+
+partitionLabels :: [Either Label (Instruction Int)] -> ([(Label, Int)], [Instruction Int])
+partitionLabels lines = partitionLabels' 0 lines [] []
+    where partitionLabels' _ [] ls is = (ls, is)
+          partitionLabels' n ((Left l):ls) labels insts = partitionLabels' (n+1) ls ((l, n):labels) insts
+          partitionLabels' n ((Right i):ls) labels insts = partitionLabels' (n+1) ls labels (i:insts)
+
+replaceLabels lines = instructions
+    where labels = fst partitioned
+          instructions = snd partitioned
+          partitioned = partitionLabels lines
 
 listOf n v = Prelude.take n . cycle $ [v]
 
 parseFile :: Parser (CPU Int, [Instruction Int])
 parseFile = do
     cpu <- parseConfig
-    skipSpace
-    instructions <- many $ parseLine
+    parseEndOfLine
+    lines <- many $ parseInst <* parseEndOfLine
     --endOfInput
-    return (cpu, instructions)
+    return (cpu, lines)
