@@ -61,6 +61,57 @@ parseTernary inst = do
     arg3 <- parseArg
     return (arg1, arg2, arg3)
 
+fromTernaryTuple (inst, c) = do
+    (dst, r1, r2) <- parseTernary inst
+    return $ c dst r1 r2
+
+parseBranch inst c = do
+    parseNoArgs inst
+    spaceSkip
+    loc <- parseArg
+    spaceSkip
+    arg <- parseArg
+    spaceSkip
+    addr <- parseLabel
+    spaceSkip
+    return (loc, arg, addr)
+
+fromBranchTuple (inst, c) = do
+    (r1, r2, addr) <- parseBranch inst c
+    return $ c r1 r2 addr
+
+parsePseudoBranchZero inst c = do
+    parseNoArgs inst
+    spaceSkip
+    reg <- parseLoc
+    spaceSkip
+    addr <- parseLabel
+    return $ c reg (Val 0) addr
+
+fromPseudoBranchTuple (inst, c) = parsePseudoBranchZero inst c
+
+ternaryParsers = map fromTernaryTuple           [("add", Add)
+                                                ,("and", And)
+                                                ,("or", Or)
+                                                ,("xor", Xor)
+                                                ,("sll", Sll)
+                                                ,("srl", Srl)
+                                                ,("sub", Sub)
+                                                ,("div", Div)
+                                                ,("mul", Mul)]
+
+branchParsers = map fromBranchTuple             [("beq", Beq)
+                                                ,("bne", Bne)
+                                                ,("bge", Bge)
+                                                ,("ble", Ble)
+                                                ,("blt", Blt)
+                                                ,("bgt", Bgt)]
+
+pseudoBranchParsers = map fromPseudoBranchTuple [("bgtz", Bgt)
+                                                ,("bgez", Bge)
+                                                ,("bltz", Blt)
+                                                ,("blez", Ble)]
+
 parseNop = do
     parseNoArgs "nop"
     return Nop
@@ -87,32 +138,10 @@ parseJmp = do
     dst <- parseLabel
     return $ Jmp dst
 
-parseBranch inst c = do
-    (r1, r2) <- parseBinary inst
-    addr <- parseLabel
-    return (r1, r2, addr)
-
-fromTernaryTuple (inst, c) = do
-    (dst, r1, r2) <- parseTernary inst
-    return $ c dst r1 r2
-
-ternaryParsers = map fromTernaryTuple [("add", Add)
-                                      ,("and", And)
-                                      ,("or", Or)
-                                      ,("xor", Xor)
-                                      ,("sll", Sll)
-                                      ,("srl", Srl)
-                                      ,("sub", Sub)
-                                      ,("mul", Mul)]
-
-branchParsers = map fromBranchTuple   [("beq", Beq)
-                                      ,("bne", Bne)
-                                      ,("blt", Blt)
-                                      ,("bgt", Bgt)]
-
-fromBranchTuple (inst, c) = do
-    (r1, r2, addr) <- parseBranch inst c
-    return $ c r1 r2 addr
+parseInParens = do
+    char '('
+    chars <- manyTill anyChar (char ')')
+    return chars
 
 parseInst = parseMov
         <|> parseNop
@@ -121,6 +150,7 @@ parseInst = parseMov
         <|> parseDec
         <|> choice ternaryParsers
         <|> choice branchParsers
+        <|> choice pseudoBranchParsers
 
 skipComments = do
     spaceSkip
