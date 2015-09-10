@@ -24,15 +24,15 @@ and r1 r2 dst
 
 -- conditional logic
 bne r1 r2 inst
+beq r1 r2 inst
 bge r1 r2 inst
 ble r1 r2 inst
 blt r1 r2 inst
 bgt r1 r2 inst
-bgtz r1 r2 inst
-bgez r1 r2 inst
-bltz r1 r2 inst
-blez r1 r2 inst
-beq r1 r2 inst
+bgtz r1 inst
+bgez r1 inst
+bltz r1 inst
+blez r1 inst
 jmp inst
 ```
 
