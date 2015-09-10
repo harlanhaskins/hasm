@@ -39,7 +39,7 @@ jmp inst
 For example, the fibonnacci sequence:
 
 ```haskell
-./Hasm test.hasm 0 0 0 0 3
+./Hasm test.hasm 0 0 0 0 5
 Current CPU:
 CPU 0 [0,0,0,0,5]
 Mov (Reg 0) (Val 1)
