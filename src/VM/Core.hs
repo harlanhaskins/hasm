@@ -70,24 +70,24 @@ runPrint is cpu@(CPU c _ _) = do
             runPrint is final
 
 runInstruction :: Instruction Int -> CPU Int -> CPU Int
-runInstruction (Mov dst src) cpu   = mov dst src cpu
-runInstruction (Add dst r1 r2) cpu = add dst r1 r2 cpu
-runInstruction (Sub dst r1 r2) cpu = sub dst r1 r2 cpu
-runInstruction (Mul dst r1 r2) cpu = mul dst r1 r2 cpu
-runInstruction (Div dst r1 r2) cpu = VM.Core.div dst r1 r2 cpu
-runInstruction (And dst r1 r2) cpu = VM.Core.and dst r1 r2 cpu
-runInstruction (Xor dst r1 r2) cpu = xor dst r1 r2 cpu
-runInstruction (Or dst r1 r2) cpu  = VM.Core.or dst r1 r2 cpu
-runInstruction (Sll dst r1 r2) cpu = sll dst r1 r2 cpu
-runInstruction (Srl dst r1 r2) cpu = srl dst r1 r2 cpu
-runInstruction (Jmp (Addr idx)) cpu       = recount cpu idx
-runInstruction (Bne r1 r2 idx) cpu = branchIf (/=) r1 r2 idx cpu
-runInstruction (Beq r1 r2 idx) cpu = branchIf (==) r1 r2 idx cpu
-runInstruction (Blt r1 r2 idx) cpu = branchIf (<) r1 r2 idx cpu
-runInstruction (Bgt r1 r2 idx) cpu = branchIf (>) r1 r2 idx cpu
-runInstruction (Ble r1 r2 idx) cpu = branchIf (<=) r1 r2 idx cpu
-runInstruction (Bge r1 r2 idx) cpu = branchIf (>=) r1 r2 idx cpu
-runInstruction Nop cpu@(CPU c _ _) = recount cpu (c+1)
+runInstruction (Mov dst src) cpu    = mov dst src cpu
+runInstruction (Add dst r1 r2) cpu  = add dst r1 r2 cpu
+runInstruction (Sub dst r1 r2) cpu  = sub dst r1 r2 cpu
+runInstruction (Mul dst r1 r2) cpu  = mul dst r1 r2 cpu
+runInstruction (Div dst r1 r2) cpu  = VM.Core.div dst r1 r2 cpu
+runInstruction (And dst r1 r2) cpu  = VM.Core.and dst r1 r2 cpu
+runInstruction (Xor dst r1 r2) cpu  = xor dst r1 r2 cpu
+runInstruction (Or dst r1 r2) cpu   = VM.Core.or dst r1 r2 cpu
+runInstruction (Sll dst r1 r2) cpu  = sll dst r1 r2 cpu
+runInstruction (Srl dst r1 r2) cpu  = srl dst r1 r2 cpu
+runInstruction (Jmp (Addr idx)) cpu = recount cpu idx
+runInstruction (Bne r1 r2 idx) cpu  = branchIf (/=) r1 r2 idx cpu
+runInstruction (Beq r1 r2 idx) cpu  = branchIf (==) r1 r2 idx cpu
+runInstruction (Blt r1 r2 idx) cpu  = branchIf (<) r1 r2 idx cpu
+runInstruction (Bgt r1 r2 idx) cpu  = branchIf (>) r1 r2 idx cpu
+runInstruction (Ble r1 r2 idx) cpu  = branchIf (<=) r1 r2 idx cpu
+runInstruction (Bge r1 r2 idx) cpu  = branchIf (>=) r1 r2 idx cpu
+runInstruction Nop cpu@(CPU c _ _)  = recount cpu (c+1)
 
 branchIf f r1 r2 (Addr idx) cpu@(CPU c rs mem)
     | f (valOf r1 cpu) (valOf r2 cpu) = recount cpu idx
