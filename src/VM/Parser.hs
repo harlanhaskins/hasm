@@ -191,6 +191,7 @@ parseFile :: Parser (CPU, [Instruction])
 parseFile = do
     cpu <- parseConfig
     parseEndOfLine
+    skipSpace
     lines <- many $ parseCmd <* parseEndOfLine <* skipSpace
     endOfInput
     return (cpu, replaceLabels lines)
