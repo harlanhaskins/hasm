@@ -151,13 +151,13 @@ parseInst = parseMov
 skipComments = do
     spaceSkip
     char ';'
-    skipSpace
+    manyTill' anyChar (try endOfLine)
     return ()
 
-parseEndOfLine = skipComments <|> (spaceSkip <* endOfLine <* skipSpace)
+parseEndOfLine = skipComments <|> skipSpace
 
 parseCmd = Right <$> parseInst
-       <|> Left <$> parseLabel
+       <|> Left  <$> parseLabel
 
 parseConfig = do
     spaceSkip
@@ -191,7 +191,6 @@ parseFile :: Parser (CPU, [Instruction])
 parseFile = do
     cpu <- parseConfig
     parseEndOfLine
-    skipSpace
-    lines <- many $ parseCmd <* parseEndOfLine <* skipSpace
-    endOfInput
+    lines <- many $ parseCmd <* parseEndOfLine
+    -- endOfInput
     return (cpu, replaceLabels lines)
