@@ -3,31 +3,31 @@ module VM.Core where
 import qualified Data.Bits as B
 import qualified Data.Vector as V
 
-data CPU a = CPU Int (V.Vector a) (V.Vector a) deriving (Eq)
-instance (Show a) => Show (CPU a) where
+data CPU = CPU Int (V.Vector Integer) (V.Vector Integer) deriving (Eq)
+instance Show CPU where
     show (CPU c rs _) = "CPU " ++ (show c) ++ " " ++ (show rs)
 
-data Arg a = Reg Int | Mem Int | Val a deriving (Show, Eq)
+data Arg = Reg Int | Mem Int | Val Integer deriving (Show, Eq)
 data Label = Lbl String | Addr Int deriving (Show, Eq)
 
-data Instruction a = Nop
-                   | Mov (Arg a) (Arg a)
-                   | Add (Arg a) (Arg a) (Arg a)
-                   | Sub (Arg a) (Arg a) (Arg a)
-                   | Mul (Arg a) (Arg a) (Arg a)
-                   | Div (Arg a) (Arg a) (Arg a)
-                   | And (Arg a) (Arg a) (Arg a)
-                   | Or (Arg a) (Arg a) (Arg a)
-                   | Xor (Arg a) (Arg a) (Arg a)
-                   | Sll (Arg a) (Arg a) (Arg a)
-                   | Srl (Arg a) (Arg a) (Arg a)
+data Instruction = Nop
+                   | Mov Arg Arg
+                   | Add Arg Arg Arg
+                   | Sub Arg Arg Arg
+                   | Mul Arg Arg Arg
+                   | Div Arg Arg Arg
+                   | And Arg Arg Arg
+                   | Or Arg Arg Arg
+                   | Xor Arg Arg Arg
+                   | Sll Arg Arg Arg
+                   | Srl Arg Arg Arg
                    | Jmp Label
-                   | Bne (Arg a) (Arg a) Label
-                   | Beq (Arg a) (Arg a) Label
-                   | Blt (Arg a) (Arg a) Label
-                   | Bgt (Arg a) (Arg a) Label
-                   | Ble (Arg a) (Arg a) Label
-                   | Bge (Arg a) (Arg a) Label
+                   | Bne Arg Arg Label
+                   | Beq Arg Arg Label
+                   | Blt Arg Arg Label
+                   | Bgt Arg Arg Label
+                   | Ble Arg Arg Label
+                   | Bge Arg Arg Label
                    deriving (Show, Eq)
 
 valOf (Reg r) (CPU _ rs _) = rs V.! r
@@ -48,18 +48,18 @@ div = combine (Prelude.div)
 xor = combine B.xor
 and = combine (B..&.)
 or  = combine (B..|.)
-sll = combine B.shiftL
-srl = combine B.shiftR
+sll = combine (\x y -> B.shiftL x (fromIntegral y))
+srl = combine (\x y -> B.shiftR x (fromIntegral y))
 
 recount (CPU _ rs mem) c = CPU c rs mem
 
-run :: V.Vector (Instruction Int) -> CPU Int -> CPU Int
+run :: V.Vector Instruction -> CPU -> CPU
 run is cpu@(CPU c _ _) =
     case (is V.!? c) of
         Nothing -> cpu
         (Just i) -> run is $ runInstruction i cpu
 
-runPrint :: V.Vector (Instruction Int) -> CPU Int -> IO ()
+runPrint :: V.Vector Instruction -> CPU -> IO ()
 runPrint is cpu@(CPU c _ _) = do
     case (is V.!? c) of
         Nothing -> print cpu
@@ -69,7 +69,7 @@ runPrint is cpu@(CPU c _ _) = do
             print final
             runPrint is final
 
-runInstruction :: Instruction Int -> CPU Int -> CPU Int
+runInstruction :: Instruction -> CPU -> CPU
 runInstruction (Mov dst src) cpu    = mov dst src cpu
 runInstruction (Add dst r1 r2) cpu  = add dst r1 r2 cpu
 runInstruction (Sub dst r1 r2) cpu  = sub dst r1 r2 cpu

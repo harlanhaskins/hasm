@@ -170,7 +170,7 @@ parseConfig = do
     memory <- decimal
     return $ CPU 0 (V.replicate registers 0) (V.replicate memory 0)
 
-partitionLabels :: [Either Label (Instruction Int)] -> ([(Label, Int)], [Instruction Int])
+partitionLabels :: [Either Label Instruction] -> ([(Label, Int)], [Instruction])
 partitionLabels lines = partitionLabels' 0 lines [] []
     where partitionLabels' _ [] ls is = (ls, is)
           partitionLabels' n ((Left l):ls) labels insts = partitionLabels' (n+1) ls ((l, n):labels) insts
@@ -183,7 +183,7 @@ replaceLabels lines = instructions
 
 listOf n v = Prelude.take n . cycle $ [v]
 
-parseFile :: Parser (CPU Int, [Instruction Int])
+parseFile :: Parser (CPU, [Instruction])
 parseFile = do
     cpu <- parseConfig
     parseEndOfLine
