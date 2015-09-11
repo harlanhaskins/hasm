@@ -1,5 +1,7 @@
 2 1
+
 mov r0 1
+mulloop:
 mul r0 r0 r1
 dec r1
-bgtz r1 1
+bgtz r1 mulloop

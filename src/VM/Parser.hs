@@ -1,12 +1,16 @@
 module VM.Parser where
 
 import Data.Attoparsec.ByteString.Char8
+import qualified Data.ByteString.Char8 as BSC
 import Control.Applicative
 import Data.Char
+import qualified Data.Map as M
 import Data.Either
 import qualified Data.Vector as V
 
 import VM.Core
+
+word = takeWhile1 . inClass $ "-a-zA-Z_'"
 
 caseChar c = char (toLower c) <|> char (toUpper c)
 caseString s = try (mapM caseChar s) <?> "\"" ++ s ++ "\""
@@ -18,16 +22,13 @@ parseMem = Mem <$> (char 'm' *> decimal)
 
 parseVal = Val <$> decimal
 
-parseLbl = do
-    label <- manyTill anyChar (char ':')
-    return $ Lbl label
+parseLbl = Lbl . BSC.unpack <$> word
 
-parseAddr = do
-    addr <- decimal
-    return $ Addr addr
+parseAddr = Addr <$> decimal
 
-parseLabel = parseLbl
-         <|> parseAddr
+parseLabel = Lbl <$> manyTill anyChar (char ':')
+
+parseJmpLabel = parseLbl <|> parseAddr
 
 parseLoc = parseReg
        <|> parseMem
@@ -72,7 +73,7 @@ parseBranch inst c = do
     spaceSkip
     arg <- parseArg
     spaceSkip
-    addr <- parseLabel
+    addr <- parseJmpLabel
     spaceSkip
     return (loc, arg, addr)
 
@@ -85,7 +86,7 @@ parsePseudoBranchZero inst c = do
     spaceSkip
     reg <- parseLoc
     spaceSkip
-    addr <- parseLabel
+    addr <- parseJmpLabel
     return $ c reg (Val 0) addr
 
 fromPseudoBranchTuple (inst, c) = parsePseudoBranchZero inst c
@@ -135,13 +136,8 @@ parseMov = do
 
 parseJmp = do
     parseNoArgs "jmp"
-    dst <- parseLabel
+    dst <- parseJmpLabel
     return $ Jmp dst
-
-parseInParens = do
-    char '('
-    chars <- manyTill anyChar (char ')')
-    return chars
 
 parseInst = parseMov
         <|> parseNop
@@ -158,10 +154,10 @@ skipComments = do
     manyTill' anyChar (try endOfLine)
     return ()
 
-parseEndOfLine = skipComments <|> (spaceSkip <* endOfLine)
+parseEndOfLine = skipComments <|> (spaceSkip <* endOfLine <* skipSpace)
 
-parseLine = Left <$> parseLabel
-        <|> Right <$> (parseInst <* parseEndOfLine)
+parseCmd = Right <$> parseInst
+       <|> Left <$> parseLabel
 
 parseConfig = do
     spaceSkip
@@ -170,16 +166,24 @@ parseConfig = do
     memory <- decimal
     return $ CPU 0 (V.replicate registers 0) (V.replicate memory 0)
 
-partitionLabels :: [Either Label Instruction] -> ([(Label, Int)], [Instruction])
-partitionLabels lines = partitionLabels' 0 lines [] []
-    where partitionLabels' _ [] ls is = (ls, is)
-          partitionLabels' n ((Left l):ls) labels insts = partitionLabels' (n+1) ls ((l, n):labels) insts
-          partitionLabels' n ((Right i):ls) labels insts = partitionLabels' (n+1) ls labels (i:insts)
+partitionLabels :: [Either Label Instruction] -> ([(String, Int)], [Instruction])
+partitionLabels = partitionEithers . map fix . (flip zip) [0..]
+    where fix ((Right i), _)       = Right i
+          fix ((Left (Lbl l)), n)  = Left (l, n)
 
-replaceLabels lines = instructions
-    where labels = fst partitioned
+replaceLabels lines = map (replacedLabel labels) instructions
+    where labels = M.fromList $ fst partitioned
           instructions = snd partitioned
           partitioned = partitionLabels lines
+
+replacedLabel ls (Jmp       (Lbl s)) = Jmp       (Addr (ls M.! s))
+replacedLabel ls (Blt r1 r2 (Lbl s)) = Blt r1 r2 (Addr (ls M.! s))
+replacedLabel ls (Bgt r1 r2 (Lbl s)) = Bgt r1 r2 (Addr (ls M.! s))
+replacedLabel ls (Bge r1 r2 (Lbl s)) = Bge r1 r2 (Addr (ls M.! s))
+replacedLabel ls (Ble r1 r2 (Lbl s)) = Ble r1 r2 (Addr (ls M.! s))
+replacedLabel ls (Bne r1 r2 (Lbl s)) = Bne r1 r2 (Addr (ls M.! s))
+replacedLabel ls (Beq r1 r2 (Lbl s)) = Beq r1 r2 (Addr (ls M.! s))
+replacedLabel _  i                   = i
 
 listOf n v = Prelude.take n . cycle $ [v]
 
@@ -187,6 +191,6 @@ parseFile :: Parser (CPU, [Instruction])
 parseFile = do
     cpu <- parseConfig
     parseEndOfLine
-    lines <- many $ parseInst <* parseEndOfLine
-    --endOfInput
-    return (cpu, lines)
+    lines <- many $ parseCmd <* parseEndOfLine <* skipSpace
+    endOfInput
+    return (cpu, replaceLabels lines)

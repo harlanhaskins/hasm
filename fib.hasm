@@ -2,8 +2,9 @@
 mov r0 1
 mov r1 1
 mov r3 2 ; Start with the first two numbers
+fib_start:
 mov r2 r1 ; Store r1 in r2 for a temp swap space
 add r1 r1 r0
 mov r0 r2 ; Move the previous number to r0
 inc r3 ; Increment the counter for which number we're on
-blt r3 r4 3 ; Stop the counter once we hit our destination number
+blt r3 r4 fib_start; Stop the counter once we hit our destination number
