@@ -151,7 +151,7 @@ parseInst = parseMov
 skipComments = do
     spaceSkip
     char ';'
-    manyTill' anyChar (try endOfLine)
+    skipSpace
     return ()
 
 parseEndOfLine = skipComments <|> (spaceSkip <* endOfLine <* skipSpace)
