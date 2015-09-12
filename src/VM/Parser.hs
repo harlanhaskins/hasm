@@ -167,13 +167,13 @@ parseConfig = do
     return $ CPU 0 (V.replicate registers 0) (V.replicate memory 0)
 
 partitionLabels :: [Either Label Instruction] -> ([(String, Int)], [Instruction])
-partitionLabels = partitionEithers . map fix . index
+partitionLabels = partitionEithers . map fix . indexRights
     where fix ((Right i), _)       = Right i
           fix ((Left (Lbl l)), n)  = Left (l, n)
 
-index = zipWithLabels 0
-    where zipWithLabels _ []     = []
-          zipWithLabels n (x:xs) = (x, n):(zipWithLabels (offsetFor x) xs)
+indexRights = indexRights' 0
+    where indexRights' _ []     = []
+          indexRights' n (x:xs) = (x, n):(indexRights' (offsetFor x) xs)
               where offsetFor (Left _) = n
                     offsetFor (Right _) = n + 1
 
