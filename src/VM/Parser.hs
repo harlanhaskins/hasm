@@ -17,8 +17,8 @@ caseString s = try (mapM caseChar s) <?> "\"" ++ s ++ "\""
 
 spaceSkip = skipMany $ satisfy (`elem` ['\t', ' '])
 
-parseReg = Reg <$> (char 'r' *> decimal)
-parseMem = Mem <$> (char 'm' *> decimal)
+parseReg = Reg <$> (caseChar 'r' *> decimal)
+parseMem = Mem <$> (caseChar 'm' *> decimal)
 
 parseVal = Val <$> decimal
 

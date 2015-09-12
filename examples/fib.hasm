@@ -9,3 +9,4 @@ fib_start:
             mov r0 r2                       ; Move the previous number to r0
             inc r3                          ; Increment the counter for which number we're on
             blt r3 r4 fib_start             ; Stop the counter once we hit our destination number
+
