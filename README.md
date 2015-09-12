@@ -1,5 +1,5 @@
 # VM.hs
-An Assembly-like programming language in Haskell
+An Assembly-like programming language and interpreter in Haskell
 
 It supports a minimal subset of assembly instructions using indexed register access.
 The recognized instructions are:
