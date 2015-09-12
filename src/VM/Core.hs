@@ -92,4 +92,3 @@ runInstruction Nop cpu@(CPU c _ _)  = recount cpu (c+1)
 branchIf f r1 r2 (Addr idx) cpu@(CPU c rs mem)
     | f (valOf r1 cpu) (valOf r2 cpu) = recount cpu idx
     | otherwise                       = CPU (c+1) rs mem
-

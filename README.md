@@ -1,6 +1,5 @@
 # VM.hs
-A polymorphic virtual machine module in Haskell
-
+An Assembly-like programming language in Haskell
 
 It supports a minimal subset of assembly instructions using indexed register access.
 The recognized instructions are:
@@ -9,18 +8,20 @@ The recognized instructions are:
 nop
 
 -- register storage
-mov r1 r2
+mov dsr r1
 
 -- arithmetic
-add r1 r2 dst
-sub r1 r2 dst
-mul r1 r2 dst
-div r1 r2 dst
+add dst r1 r2
+sub dst r1 r2
+mul dst r1 r2
+div dst r1 r2
 
 -- bitwise operations
-xor r1 r2 dst
-or r1 r2 dst
-and r1 r2 dst
+xor dst r1 r2
+or dst r1 r2
+and dst r1 r2
+sll dst r1 r2
+srl dst r1 r2
 
 -- conditional logic
 bne r1 r2 inst
