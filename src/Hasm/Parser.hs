@@ -99,6 +99,7 @@ ternaryParsers = map fromTernaryTuple           [("add", Add)
                                                 ,("srl", Srl)
                                                 ,("sub", Sub)
                                                 ,("div", Div)
+                                                ,("mod", Mod)
                                                 ,("mul", Mul)]
 
 branchParsers = map fromBranchTuple             [("beq", Beq)
@@ -111,6 +112,8 @@ branchParsers = map fromBranchTuple             [("beq", Beq)
 pseudoBranchParsers = map fromPseudoBranchTuple [("bgtz", Bgt)
                                                 ,("bgez", Bge)
                                                 ,("bltz", Blt)
+                                                ,("beqz", Beq)
+                                                ,("bnez", Bne)
                                                 ,("blez", Ble)]
 
 parseNop = do

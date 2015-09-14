@@ -16,6 +16,7 @@ data Instruction = Nop
                    | Sub Arg Arg Arg
                    | Mul Arg Arg Arg
                    | Div Arg Arg Arg
+                   | Mod Arg Arg Arg
                    | And Arg Arg Arg
                    | Or Arg Arg Arg
                    | Xor Arg Arg Arg
@@ -46,7 +47,8 @@ mov dst src cpu = combine (\x _ -> x) dst src dst cpu
 add = combine (+)
 sub = combine (-)
 mul = combine (*)
-div = combine (Prelude.div)
+mod = combine Prelude.mod
+div = combine Prelude.div
 xor = combine B.xor
 and = combine (B..&.)
 or  = combine (B..|.)
@@ -77,6 +79,7 @@ runInstruction (Add dst r1 r2)  = add dst r1 r2
 runInstruction (Sub dst r1 r2)  = sub dst r1 r2
 runInstruction (Mul dst r1 r2)  = mul dst r1 r2
 runInstruction (Div dst r1 r2)  = Hasm.Core.div dst r1 r2
+runInstruction (Mod dst r1 r2)  = Hasm.Core.mod dst r1 r2
 runInstruction (And dst r1 r2)  = Hasm.Core.and dst r1 r2
 runInstruction (Xor dst r1 r2)  = xor dst r1 r2
 runInstruction (Or dst r1 r2)   = Hasm.Core.or dst r1 r2
