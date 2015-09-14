@@ -1,4 +1,4 @@
-# VM.hs
+# hasm
 An Assembly-like programming language and interpreter in Haskell
 
 It supports a minimal subset of assembly instructions using indexed register access.
