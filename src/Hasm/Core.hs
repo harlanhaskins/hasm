@@ -5,7 +5,25 @@ import qualified Data.Vector as V
 
 data CPU = CPU Int (V.Vector Integer) (V.Vector Integer) deriving (Eq)
 instance Show CPU where
-    show (CPU c rs _) = "CPU " ++ (show c) ++ " " ++ (show rs)
+    show (CPU c rs _) = "CPU " ++ (show c) ++ "  " ++ (showRegs rs)
+        where showRegs = intercalate "\n\t" . V.map (intercalate "  ") . chunks 5 .  V.map showReg . V.indexed
+              showReg (idx, v) = "[r" ++ (show idx) ++ ": " ++ (show v) ++ "]"
+
+intersperse :: a -> V.Vector a -> V.Vector a
+intersperse s v | null v    = v
+                | otherwise = V.head v `V.cons` prependToAll s (V.tail v)
+
+prependToAll :: a -> V.Vector a -> V.Vector a
+prependToAll s v | null v    = v
+                 | otherwise = s `V.cons` (V.head v `V.cons` prependToAll s (V.tail v))
+
+intercalate :: [a] -> V.Vector [a] -> [a]
+intercalate = (foldr1 (Prelude.++) .) . intersperse
+
+chunks n v
+    | null v    = V.empty
+    | otherwise = V.cons (fst pair) ((chunks n . snd) pair)
+    where pair = V.splitAt n v
 
 data Arg = Reg Int | Mem Int | Val Integer deriving (Show, Eq)
 data Label = Lbl String | Addr Int deriving (Show, Eq)
