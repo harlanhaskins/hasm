@@ -29,31 +29,29 @@ data Arg = Reg Int | Mem Int | Val Integer deriving (Show, Eq)
 data Label = Lbl String | Addr Int deriving (Show, Eq)
 
 data Instruction = Nop
-                   | Mov Arg Arg
-                   | Add Arg Arg Arg
-                   | Sub Arg Arg Arg
-                   | Mul Arg Arg Arg
-                   | Div Arg Arg Arg
-                   | Mod Arg Arg Arg
-                   | And Arg Arg Arg
-                   | Or Arg Arg Arg
-                   | Xor Arg Arg Arg
-                   | Sll Arg Arg Arg
-                   | Srl Arg Arg Arg
-                   | Jmp Label
-                   | Bne Arg Arg Label
-                   | Beq Arg Arg Label
-                   | Blt Arg Arg Label
-                   | Bgt Arg Arg Label
-                   | Ble Arg Arg Label
-                   | Bge Arg Arg Label
-                   deriving (Show, Eq)
+                 | Mov Arg Arg
+                 | Add Arg Arg Arg
+                 | Sub Arg Arg Arg
+                 | Mul Arg Arg Arg
+                 | Div Arg Arg Arg
+                 | Mod Arg Arg Arg
+                 | And Arg Arg Arg
+                 | Or Arg Arg Arg
+                 | Xor Arg Arg Arg
+                 | Sll Arg Arg Arg
+                 | Srl Arg Arg Arg
+                 | Jmp Label
+                 | Bne Arg Arg Label
+                 | Beq Arg Arg Label
+                 | Blt Arg Arg Label
+                 | Bgt Arg Arg Label
+                 | Ble Arg Arg Label
+                 | Bge Arg Arg Label
+                 deriving (Show, Eq)
 
 valOf (Reg r) (CPU _ rs _) = rs V.! r
 valOf (Mem m) (CPU _ _ mem) = mem V.! m
 valOf (Val a) _ = a
-
-increment (CPU c rs mem) = CPU (c+1) rs mem
 
 final f r1 r2 cpu = f (valOf r1 cpu) (valOf r2 cpu)
 updatePair dst f r1 r2 cpu = V.fromList [(dst, (final f r1 r2 cpu))]
@@ -74,6 +72,7 @@ sll = combine (\x y -> B.shiftL x (fromIntegral y))
 srl = combine (\x y -> B.shiftR x (fromIntegral y))
 
 recount c (CPU _ rs mem) = CPU c rs mem
+increment (CPU c rs mem) = CPU (c+1) rs mem
 
 run :: V.Vector Instruction -> CPU -> CPU
 run is cpu@(CPU c _ _) =

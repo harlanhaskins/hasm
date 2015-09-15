@@ -20,6 +20,6 @@ main = do
             let initialized = initialize cpu (map read xs)
             putStrLn $ "Current CPU: \n" ++ (show initialized)
             putStrLn . unlines . (map show) $ instructions
-            --let final = run (V.fromList instructions) initialized
-            --putStrLn $ "Final CPU: \n" ++ (show final)
-            runPrint (V.fromList instructions) initialized
+            let final = run (V.fromList instructions) initialized
+            putStrLn $ "Final CPU: \n" ++ (show final)
+            -- runPrint (V.fromList instructions) initialized

@@ -195,8 +195,6 @@ replacedLabel ls (Bne r1 r2 (Lbl s)) = Bne r1 r2 (Addr (ls M.! s))
 replacedLabel ls (Beq r1 r2 (Lbl s)) = Beq r1 r2 (Addr (ls M.! s))
 replacedLabel _  i                   = i
 
-listOf n v = Prelude.take n . cycle $ [v]
-
 parseFile :: Parser (CPU, [Instruction])
 parseFile = do
     cpu <- parseConfig
