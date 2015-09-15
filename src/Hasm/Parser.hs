@@ -168,6 +168,16 @@ parseJr = do
     dst <- parseReg
     return $ Jr dst
 
+parseMemInst inst c = do
+    parseNoArgs inst
+    dst <- parseReg
+    spaceSkip
+    src <- parseReg
+    return $ c dst src
+
+parseStr = parseMemInst "str" Str
+parseLd = parseMemInst "ld" Ld
+
 parseInst = parseMov
         <|> parseNop
         <|> parseJmp
@@ -177,6 +187,8 @@ parseInst = parseMov
         <|> parseRet
         <|> parseInc
         <|> parseDec
+        <|> parseLd
+        <|> parseStr
         <|> choice ternaryParsers
         <|> choice branchParsers
         <|> choice pseudoBranchParsers

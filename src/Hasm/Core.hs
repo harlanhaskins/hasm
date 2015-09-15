@@ -41,6 +41,8 @@ data Instruction = Nop
                  | Xor Arg Arg Arg
                  | Sll Arg Arg Arg
                  | Srl Arg Arg Arg
+                 | Ld Arg Arg
+                 | Str Arg Arg
                  | Movl Arg Label
                  | Jmp Label
                  | Call Label
@@ -57,9 +59,8 @@ valOf (Reg r) (CPU _ rs _) = rs ! r
 valOf (Val a) _            = a
 
 final f r1 r2 cpu = f (valOf r1 cpu) (valOf r2 cpu)
-updatePair dst f r1 r2 cpu = fromList [(dst, (final f r1 r2 cpu))]
 
-combine f (Reg dst) r1 r2 cpu@(CPU c rs mem) = CPU (c+1) (update rs (updatePair dst f r1 r2 cpu)) mem
+combine f (Reg dst) r1 r2 cpu@(CPU c rs mem) = CPU (c+1) (rs // [(dst, final f r1 r2 cpu)]) mem
 
 mov dst src cpu = combine (\x _ -> x) dst src dst cpu
 add = combine (+)
@@ -72,6 +73,9 @@ and = combine (B..&.)
 or  = combine (B..|.)
 sll = combine (\x y -> B.shiftL x (fromIntegral y))
 srl = combine (\x y -> B.shiftR x (fromIntegral y))
+
+ld (Reg dst) src cpu@(CPU c rs mem) = CPU (c+1) (rs // [(dst, mem ! ((fromIntegral . valOf src) cpu))]) mem
+str dst src cpu@(CPU c rs mem)      = CPU (c+1) rs (mem // [(((fromIntegral . valOf src) cpu), valOf dst cpu)])
 
 recount c (CPU _ rs mem) = CPU c rs mem
 recountR r1 cpu@(CPU _ rs mem) = CPU (fromIntegral $ valOf r1 cpu) rs mem
@@ -95,6 +99,8 @@ runPrint is cpu@(CPU c _ _) = do
 
 runInstruction :: Instruction -> CPU -> CPU
 runInstruction (Mov dst src)         = mov dst src
+runInstruction (Ld dst src)          = ld dst src
+runInstruction (Str dst src)         = str dst src
 runInstruction (Add dst r1 r2)       = add dst r1 r2
 runInstruction (Sub dst r1 r2)       = sub dst r1 r2
 runInstruction (Mul dst r1 r2)       = mul dst r1 r2
