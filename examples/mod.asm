@@ -1,4 +1,4 @@
-3 0
+0
 
 mod_loop:
             mov r2 r0           ; Put the `val` in the return address.

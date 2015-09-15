@@ -10,6 +10,11 @@ import qualified Data.Vector as V
 
 import Hasm.Core
 
+regs = M.fromList
+     . map (\(n, idx) -> (n, Reg idx)) $
+     [ ("ra", 31)
+     ]
+
 word = takeWhile1 . inClass $ "-a-zA-Z_'"
 
 caseChar c = char (toLower c) <|> char (toUpper c)
@@ -18,7 +23,6 @@ caseString s = try (mapM caseChar s) <?> "\"" ++ s ++ "\""
 spaceSkip = skipMany $ satisfy (`elem` ['\t', ' '])
 
 parseReg = Reg <$> (caseChar 'r' *> decimal)
-parseMem = Mem <$> (caseChar 'm' *> decimal)
 
 parseVal = Val <$> decimal
 
@@ -30,10 +34,7 @@ parseLabel = Lbl <$> manyTill anyChar (char ':')
 
 parseJmpLabel = parseLbl <|> parseAddr
 
-parseLoc = parseReg
-       <|> parseMem
-
-parseArg = parseLoc
+parseArg = parseReg
        <|> parseVal
 
 parseNoArgs inst = do
@@ -55,7 +56,7 @@ parseBinary inst = do
 
 parseTernary inst = do
     parseNoArgs inst
-    arg1 <- parseLoc
+    arg1 <- parseReg
     spaceSkip
     arg2 <- parseArg
     spaceSkip
@@ -84,7 +85,7 @@ fromBranchTuple (inst, c) = do
 parsePseudoBranchZero inst c = do
     parseNoArgs inst
     spaceSkip
-    reg <- parseLoc
+    reg <- parseReg
     spaceSkip
     addr <- parseJmpLabel
     return $ c reg (Val 0) addr
@@ -120,31 +121,56 @@ parseNop = do
     parseNoArgs "nop"
     return Nop
 
+parseRet = do
+    parseNoArgs "ret"
+    return $ Jr (Reg 31)
+
 parseInc = do
     parseNoArgs "inc"
-    reg <- parseLoc
+    reg <- parseReg
     return $ Add reg reg (Val 1)
 
 parseDec = do
     parseNoArgs "dec"
-    reg <- parseLoc
+    reg <- parseReg
     return $ Sub reg reg (Val 1)
 
 parseMov = do
     parseNoArgs "mov"
-    dst <- parseLoc
+    dst <- parseReg
     spaceSkip
     src <- parseArg
     return $ Mov dst src
+
+parseMovl = do
+    parseNoArgs "movl"
+    dst <- parseReg
+    spaceSkip
+    src <- parseJmpLabel
+    return $ Movl dst src
 
 parseJmp = do
     parseNoArgs "jmp"
     dst <- parseJmpLabel
     return $ Jmp dst
 
+parseCall = do
+    parseNoArgs "call"
+    dst <- parseJmpLabel
+    return $ Call dst
+
+parseJr = do
+    parseNoArgs "jr"
+    dst <- parseReg
+    return $ Jr dst
+
 parseInst = parseMov
         <|> parseNop
         <|> parseJmp
+        <|> parseCall
+        <|> parseMovl
+        <|> parseJr
+        <|> parseRet
         <|> parseInc
         <|> parseDec
         <|> choice ternaryParsers
@@ -164,10 +190,9 @@ parseCmd = Right <$> parseInst
 
 parseConfig = do
     spaceSkip
-    registers <- decimal
-    spaceSkip
     memory <- decimal
-    return $ CPU 0 (V.replicate registers 0) (V.replicate memory 0)
+    parseEndOfLine
+    return $ CPU 0 (V.replicate 32 0) (V.replicate memory 0)
 
 partitionLabels :: [Either Label Instruction] -> ([(String, Int)], [Instruction])
 partitionLabels = partitionEithers . map fix . indexRights
@@ -187,6 +212,8 @@ replaceLabels lines = map (replacedLabel labels) instructions
           partitioned = partitionLabels lines
 
 replacedLabel ls (Jmp       (Lbl s)) = Jmp       (Addr (ls M.! s))
+replacedLabel ls (Call      (Lbl s)) = Call      (Addr (ls M.! s))
+replacedLabel ls (Movl dst  (Lbl s)) = Movl dst  (Addr (ls M.! s))
 replacedLabel ls (Blt r1 r2 (Lbl s)) = Blt r1 r2 (Addr (ls M.! s))
 replacedLabel ls (Bgt r1 r2 (Lbl s)) = Bgt r1 r2 (Addr (ls M.! s))
 replacedLabel ls (Bge r1 r2 (Lbl s)) = Bge r1 r2 (Addr (ls M.! s))
@@ -198,7 +225,7 @@ replacedLabel _  i                   = i
 parseFile :: Parser (CPU, [Instruction])
 parseFile = do
     cpu <- parseConfig
-    parseEndOfLine
+    skipSpace
     lines <- many $ parseCmd <* parseEndOfLine
     skipSpace
     endOfInput

@@ -1,4 +1,4 @@
-3 0
+0
 
 gcd_loop:
             beqz r1 done
