@@ -7,7 +7,7 @@ import Data.Vector hiding ((++))
 data CPU = CPU Int (Vector Integer) (Vector Integer) deriving (Eq)
 instance Show CPU where
     show (CPU c rs _) = "\t" ++ (showRegs rs)
-        where showRegs = intercalate "\n\t" . map (intercalate "  ") . chunks 8 .  map showReg . indexed
+        where showRegs = intercalate "\n\t" . map (intercalate "\t") . chunks 8 .  map showReg . indexed
               showReg (idx, v) = "r" ++ (show idx) ++ ":\t" ++ (show v)
 
 intersperse :: a -> Vector a -> Vector a
