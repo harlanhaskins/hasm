@@ -1,29 +1,30 @@
 module Hasm.Core where
 
+import Prelude hiding (map, null, head, splitAt, prependToAll, intercalate, intersperse, foldr1, tail)
 import qualified Data.Bits as B
-import qualified Data.Vector as V
+import Data.Vector hiding ((++))
 
-data CPU = CPU Int (V.Vector Integer) (V.Vector Integer) deriving (Eq)
+data CPU = CPU Int (Vector Integer) (Vector Integer) deriving (Eq)
 instance Show CPU where
     show (CPU c rs _) = "CPU " ++ (show c) ++ "  " ++ (showRegs rs)
-        where showRegs = intercalate "\n\t" . V.map (intercalate "  ") . chunks 5 .  V.map showReg . V.indexed
+        where showRegs = intercalate "\n\t" . map (intercalate "  ") . chunks 5 .  map showReg . indexed
               showReg (idx, v) = "[r" ++ (show idx) ++ ": " ++ (show v) ++ "]"
 
-intersperse :: a -> V.Vector a -> V.Vector a
+intersperse :: a -> Vector a -> Vector a
 intersperse s v | null v    = v
-                | otherwise = V.head v `V.cons` prependToAll s (V.tail v)
+                | otherwise = head v `cons` prependToAll s (tail v)
 
-prependToAll :: a -> V.Vector a -> V.Vector a
+prependToAll :: a -> Vector a -> Vector a
 prependToAll s v | null v    = v
-                 | otherwise = s `V.cons` (V.head v `V.cons` prependToAll s (V.tail v))
+                 | otherwise = s `cons` (head v `cons` prependToAll s (tail v))
 
-intercalate :: [a] -> V.Vector [a] -> [a]
-intercalate = (foldr1 (Prelude.++) .) . intersperse
+intercalate :: [a] -> Vector [a] -> [a]
+intercalate = (foldr1 (++) .) . intersperse
 
 chunks n v
-    | null v    = V.empty
-    | otherwise = V.cons (fst pair) ((chunks n . snd) pair)
-    where pair = V.splitAt n v
+    | null v    = empty
+    | otherwise = cons (fst pair) ((chunks n . snd) pair)
+    where pair = splitAt n v
 
 data Arg = Reg Int | Mem Int | Val Integer deriving (Show, Eq)
 data Label = Lbl String | Addr Int deriving (Show, Eq)
@@ -49,15 +50,15 @@ data Instruction = Nop
                  | Bge Arg Arg Label
                  deriving (Show, Eq)
 
-valOf (Reg r) (CPU _ rs _) = rs V.! r
-valOf (Mem m) (CPU _ _ mem) = mem V.! m
+valOf (Reg r) (CPU _ rs _) = rs ! r
+valOf (Mem m) (CPU _ _ mem) = mem ! m
 valOf (Val a) _ = a
 
 final f r1 r2 cpu = f (valOf r1 cpu) (valOf r2 cpu)
-updatePair dst f r1 r2 cpu = V.fromList [(dst, (final f r1 r2 cpu))]
+updatePair dst f r1 r2 cpu = fromList [(dst, (final f r1 r2 cpu))]
 
-combine f (Reg dst) r1 r2 cpu@(CPU c rs mem) = CPU (c+1) (V.update rs (updatePair dst f r1 r2 cpu)) mem
-combine f (Mem dst) r1 r2 cpu@(CPU c rs mem) = CPU (c+1) rs (V.update mem (updatePair dst f r1 r2 cpu))
+combine f (Reg dst) r1 r2 cpu@(CPU c rs mem) = CPU (c+1) (update rs (updatePair dst f r1 r2 cpu)) mem
+combine f (Mem dst) r1 r2 cpu@(CPU c rs mem) = CPU (c+1) rs (update mem (updatePair dst f r1 r2 cpu))
 
 mov dst src cpu = combine (\x _ -> x) dst src dst cpu
 add = combine (+)
@@ -74,15 +75,15 @@ srl = combine (\x y -> B.shiftR x (fromIntegral y))
 recount c (CPU _ rs mem) = CPU c rs mem
 increment (CPU c rs mem) = CPU (c+1) rs mem
 
-run :: V.Vector Instruction -> CPU -> CPU
+run :: Vector Instruction -> CPU -> CPU
 run is cpu@(CPU c _ _) =
-    case (is V.!? c) of
+    case (is !? c) of
         Nothing -> cpu
         (Just i) -> run is $ runInstruction i cpu
 
-runPrint :: V.Vector Instruction -> CPU -> IO ()
+runPrint :: Vector Instruction -> CPU -> IO ()
 runPrint is cpu@(CPU c _ _) = do
-    case (is V.!? c) of
+    case (is !? c) of
         Nothing -> print cpu
         (Just i) -> do
             print i
