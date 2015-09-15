@@ -73,7 +73,7 @@ sll = combine (\x y -> B.shiftL x (fromIntegral y))
 srl = combine (\x y -> B.shiftR x (fromIntegral y))
 
 recount c (CPU _ rs mem) = CPU c rs mem
-increment (CPU c rs mem) = CPU (c+1) rs mem
+increment cpu@(CPU c _ _) = recount (c+1) cpu
 
 run :: Vector Instruction -> CPU -> CPU
 run is cpu@(CPU c _ _) =
