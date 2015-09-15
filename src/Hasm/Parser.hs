@@ -15,7 +15,7 @@ regs = M.fromList
      [ ("ra", 31)
      ]
 
-word = takeWhile1 . inClass $ "-a-zA-Z_'"
+word = takeWhile1 . inClass $ "-a-zA-Z0-9_'"
 
 caseChar c = char (toLower c) <|> char (toUpper c)
 caseString s = try (mapM caseChar s) <?> "\"" ++ s ++ "\""
@@ -30,7 +30,11 @@ parseLbl = Lbl . BSC.unpack <$> word
 
 parseAddr = Addr <$> decimal
 
-parseLabel = Lbl <$> manyTill anyChar (char ':')
+parseLabel = do
+    spaceSkip
+    text <- word
+    char ':'
+    return $ (Lbl . BSC.unpack) text
 
 parseJmpLabel = parseLbl <|> parseAddr
 
