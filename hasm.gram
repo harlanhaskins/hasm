@@ -1,12 +1,12 @@
 HASM Grammar
 
-loc          ::= r<num> | m<num>
+reg          ::= r<num>
 arg          ::= <loc> | <num>
-no-arg-inst  ::= nop
-combine-inst ::= add | sub | mul | xor | or | and
+inst         ::= add | sub | mul | xor | or | and | slr | sll
 mov-expr     ::= mov <loc> <arg>
-branch-inst  ::= beq | bne
-inst         ::= <combine-inst> | <branch-inst> | <no-arg-inst>
+no-args-inst ::= nop | ret
+branch-inst  ::= beq | bne | blt | ble | bgt | bge | bltz | bgez | beqz | bnez
+inst         ::= <combine-inst> | <branch-inst> | <no-args-inst> | mov | jmp | jr
 unary-expr   ::= <inst> <arg>
 binary-expr  ::= <unary-expr> <arg>
 ternary-expr ::= <binary-expr> <arg>
