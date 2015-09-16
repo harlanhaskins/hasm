@@ -6,7 +6,7 @@ import Control.Applicative
 import Data.Char
 import qualified Data.Map as M
 import Data.Either
-import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as V
 
 import Hasm.Core
 

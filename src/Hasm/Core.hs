@@ -1,32 +1,24 @@
 module Hasm.Core where
 
 import Prelude hiding (map, null, head, splitAt, prependToAll, intercalate, intersperse, foldr1, tail)
+import qualified Prelude as P
+import qualified Data.List as L
 import qualified Data.Bits as B
-import Data.Vector hiding ((++))
+import Data.Vector.Unboxed hiding ((++))
+import qualified Data.Vector as V
 
-data CPU = CPU Int (Vector Integer) (Vector Integer) deriving (Eq)
+data CPU = CPU Int (Vector Int) (Vector Int) deriving (Eq)
 instance Show CPU where
     show (CPU c rs _) = "\t" ++ (showRegs rs)
-        where showRegs = intercalate "\n\t" . map (intercalate "\t") . chunks 8 .  map showReg . indexed
+        where showRegs = L.intercalate "\n\t" . P.map (L.intercalate "\t") . chunks 8 .  P.map showReg . toList . indexed
               showReg (idx, v) = "r" ++ (show idx) ++ ":\t" ++ (show v)
 
-intersperse :: a -> Vector a -> Vector a
-intersperse s v | null v    = v
-                | otherwise = head v `cons` prependToAll s (tail v)
-
-prependToAll :: a -> Vector a -> Vector a
-prependToAll s v | null v    = v
-                 | otherwise = s `cons` (head v `cons` prependToAll s (tail v))
-
-intercalate :: [a] -> Vector [a] -> [a]
-intercalate = (foldr1 (++) .) . intersperse
-
 chunks n v
-    | null v    = empty
-    | otherwise = cons (fst pair) ((chunks n . snd) pair)
-    where pair = splitAt n v
+    | P.null v    = []
+    | otherwise = (fst pair):((chunks n . snd) pair)
+    where pair = P.splitAt n v
 
-data Arg = Reg Int | Val Integer deriving (Show, Eq)
+data Arg = Reg Int | Val Int deriving (Show, Eq)
 data Label = Lbl String | Addr Int deriving (Show, Eq)
 
 data Instruction = Nop
@@ -71,25 +63,25 @@ div = combine Prelude.div
 xor = combine B.xor
 and = combine (B..&.)
 or  = combine (B..|.)
-sll = combine (\x y -> B.shiftL x (fromIntegral y))
-srl = combine (\x y -> B.shiftR x (fromIntegral y))
+sll = combine (\x y -> B.shiftL x y)
+srl = combine (\x y -> B.shiftR x y)
 
-ld (Reg dst) src cpu@(CPU c rs mem) = CPU (c+1) (rs // [(dst, mem ! ((fromIntegral . valOf src) cpu))]) mem
-str dst src cpu@(CPU c rs mem)      = CPU (c+1) rs (mem // [(((fromIntegral . valOf src) cpu), valOf dst cpu)])
+ld (Reg dst) src cpu@(CPU c rs mem) = CPU (c+1) (rs // [(dst, mem ! (valOf src cpu))]) mem
+str dst src cpu@(CPU c rs mem)      = CPU (c+1) rs (mem // [(valOf src cpu, valOf dst cpu)])
 
 recount c (CPU _ rs mem) = CPU c rs mem
-recountR r1 cpu@(CPU _ rs mem) = CPU (fromIntegral $ valOf r1 cpu) rs mem
+recountR r1 cpu@(CPU _ rs mem) = CPU (valOf r1 cpu) rs mem
 increment cpu@(CPU c _ _) = recount (c+1) cpu
 
-run :: Vector Instruction -> CPU -> CPU
+run :: V.Vector Instruction -> CPU -> CPU
 run is cpu@(CPU c _ _) =
-    case (is !? c) of
+    case (is V.!? c) of
         Nothing -> cpu
         (Just i) -> run is $ runInstruction i cpu
 
-runPrint :: Vector Instruction -> CPU -> IO ()
+runPrint :: V.Vector Instruction -> CPU -> IO ()
 runPrint is cpu@(CPU c _ _) = do
-    case (is !? c) of
+    case (is V.!? c) of
         Nothing  -> return ()
         (Just i) -> do
             putStrLn $ (show i) ++ "\n"
@@ -111,7 +103,7 @@ runInstruction (Xor dst r1 r2)       = xor dst r1 r2
 runInstruction (Or dst r1 r2)        = Hasm.Core.or dst r1 r2
 runInstruction (Sll dst r1 r2)       = sll dst r1 r2
 runInstruction (Srl dst r1 r2)       = srl dst r1 r2
-runInstruction (Movl dst (Addr idx)) = mov dst (Val $ toInteger idx)
+runInstruction (Movl dst (Addr idx)) = mov dst (Val idx)
 runInstruction (Jmp (Addr idx))      = recount  idx
 runInstruction (Jr arg)              = recountR arg
 runInstruction (Bne r1 r2 idx)       = branchIf (/=) r1 r2 idx

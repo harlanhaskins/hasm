@@ -4,6 +4,7 @@ import System.Environment
 import Text.Read
 import Data.Attoparsec.ByteString.Char8 (parseOnly)
 import qualified Data.ByteString as B
+import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector as V
 
 import Hasm.Core
@@ -12,10 +13,10 @@ import Hasm.Parser
 data Config = Config
     { filename     :: String
     , debug        :: Bool
-    , values       :: [Integer]
+    , values       :: [Int]
     }
 
-initialize (CPU c rs mem) xs = (CPU c (rs V.// (zip [0..] xs)) mem)
+initialize (CPU c rs mem) xs = (CPU c (rs U.// (zip [0..] xs)) mem)
 
 parseArguments :: [String] -> Config
 parseArguments ("-d":fn:xs) = Config fn True  (map read xs)
