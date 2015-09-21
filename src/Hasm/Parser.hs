@@ -64,7 +64,7 @@ parseTernary inst = do
 
 fromTernaryTuple (inst, c) = do
     (dst, r1, r2) <- parseTernary inst
-    return [c dst r1 r2]
+    return $ c dst r1 r2
 
 parseBranch inst c = do
     parseNoArgs inst
@@ -79,7 +79,7 @@ parseBranch inst c = do
 
 fromBranchTuple (inst, c) = do
     (r1, r2, addr) <- parseBranch inst c
-    return [c r1 r2 addr]
+    return $ c r1 r2 addr
 
 parsePseudoBranchZero inst c = do
     parseNoArgs inst
@@ -87,7 +87,7 @@ parsePseudoBranchZero inst c = do
     reg <- parseReg
     spaceSkip
     addr <- parseJmpLabel
-    return [c reg (Val 0) addr]
+    return $ c reg (Val 0) addr
 
 fromPseudoBranchTuple (inst, c) = parsePseudoBranchZero inst c
 
@@ -118,75 +118,79 @@ pseudoBranchParsers = map fromPseudoBranchTuple [("bgtz", Bgt)
 
 parseNop = do
     parseNoArgs "nop"
-    return [Nop]
+    return Nop
 
 parseRet = do
     parseNoArgs "ret"
-    return [Jr (Reg 31)]
+    return $ Jr (Reg 31)
 
 parseInc = do
     parseNoArgs "inc"
     reg <- parseReg
-    return [Add reg reg (Val 1)]
+    return $ Add reg reg (Val 1)
 
 parseDec = do
     parseNoArgs "dec"
     reg <- parseReg
-    return [Sub reg reg (Val 1)]
+    return $ Sub reg reg (Val 1)
 
 parseMov = do
     parseNoArgs "mov"
     dst <- parseReg
     spaceSkip
     src <- parseArg
-    return [Mov dst src]
+    return $ Mov dst src
 
 parseMovl = do
     parseNoArgs "movl"
     dst <- parseReg
     spaceSkip
     src <- parseJmpLabel
-    return [Movl dst src]
+    return $ Movl dst src
 
 parseJmp = do
     parseNoArgs "jmp"
     dst <- parseJmpLabel
-    return [Jmp dst]
+    return $ Jmp dst
 
 parseCall = do
     parseNoArgs "call"
     dst <- parseJmpLabel
-    return [Call dst]
+    return $ Call dst
 
 parseJr = do
     parseNoArgs "jr"
     dst <- parseReg
-    return [Jr dst]
+    return $ Jr dst
 
 parseMemInst inst c = do
     parseNoArgs inst
     dst <- parseReg
     spaceSkip
     src <- parseReg
-    return [c dst src]
+    return $ c dst src
+
+parseIntoList p = (:[]) <$> p
 
 parseStr = parseMemInst "str" Str
 parseLd = parseMemInst "ld" Ld
 
-parseInst = parseMov
-        <|> parseNop
-        <|> parseJmp
-        <|> parseCall
-        <|> parseMovl
-        <|> parseJr
-        <|> parseRet
-        <|> parseInc
-        <|> parseDec
-        <|> parseLd
-        <|> parseStr
-        <|> choice ternaryParsers
-        <|> choice branchParsers
-        <|> choice pseudoBranchParsers
+parseSingleInst = parseIntoList (parseMov
+                             <|> parseNop
+                             <|> parseJmp
+                             <|> parseCall
+                             <|> parseMovl
+                             <|> parseJr
+                             <|> parseRet
+                             <|> parseInc
+                             <|> parseDec
+                             <|> parseLd
+                             <|> parseStr
+                             <|> choice ternaryParsers
+                             <|> choice branchParsers
+                             <|> choice pseudoBranchParsers)
+
+parseInst = parseSingleInst -- This will be combined with other pseudo-instruction parsers
 
 skipComments = do
     spaceSkip
@@ -228,6 +232,7 @@ replaceLabels lines = map (replacedLabel labels) instructions
           partitioned = partitionLabels lines
 
 replacedLabel ls (Jmp       (Lbl s)) = Jmp       (Addr (ls M.! s))
+replacedLabel ls (Call      (Lbl s)) = Call      (Addr (ls M.! s))
 replacedLabel ls (Movl dst  (Lbl s)) = Movl dst  (Addr (ls M.! s))
 replacedLabel ls (Blt r1 r2 (Lbl s)) = Blt r1 r2 (Addr (ls M.! s))
 replacedLabel ls (Bgt r1 r2 (Lbl s)) = Bgt r1 r2 (Addr (ls M.! s))

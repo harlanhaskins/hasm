@@ -33,7 +33,7 @@ main = do
             putStrLn $ "Starting CPU: \n" ++ (show initialized)
             if (debug config) then do
                 putStrLn . unlines . (map show) $ instructions
-                runPrint (V.fromList instructions) initialized
             else do
-                let final = run (V.fromList instructions) initialized
-                putStrLn $ "Final CPU: \n" ++ (show final)
+                return ()
+            final <- run (debug config) (V.fromList instructions) initialized
+            putStrLn $ "Final CPU: \n" ++ (show final)

@@ -75,21 +75,18 @@ recount c (CPU _ rs mem) = CPU c rs mem
 recountR r1 cpu@(CPU _ rs mem) = CPU (valOf r1 cpu) rs mem
 increment cpu@(CPU c _ _) = recount (c+1) cpu
 
-run :: V.Vector Instruction -> CPU -> CPU
-run is cpu@(CPU c _ _) =
+run :: Bool -> V.Vector Instruction -> CPU -> IO CPU
+run verbose is cpu@(CPU c _ _) = do
     case (is V.!? c) of
-        Nothing -> cpu
-        (Just i) -> run is $ runInstruction i cpu
-
-runPrint :: V.Vector Instruction -> CPU -> IO ()
-runPrint is cpu@(CPU c _ _) = do
-    case (is V.!? c) of
-        Nothing  -> return ()
+        Nothing  -> return cpu
         (Just i) -> do
-            putStrLn $ (show i) ++ "\n"
             let final = runInstruction i cpu
-            putStrLn $ (show final) ++ "\n"
-            runPrint is final
+            if verbose then do
+                putStrLn $ (show i) ++ "\n"
+                putStrLn $ (show final) ++ "\n"
+                run verbose is final
+            else do
+                run verbose is final
 
 runInstruction :: Instruction -> CPU -> CPU
 runInstruction (Mov dst src)         = mov dst src
