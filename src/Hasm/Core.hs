@@ -10,7 +10,7 @@ import qualified Data.Vector as V
 data CPU = CPU Int (Vector Int) (Vector Int) deriving (Eq)
 instance Show CPU where
     show (CPU c rs _) = "\t" ++ (showRegs rs)
-        where showRegs = L.intercalate "\n\t" . P.map (L.intercalate "\t") . chunks 8 .  P.map showReg . toList . indexed
+        where showRegs = L.intercalate "\n\t" . P.map (L.intercalate "\t") . chunks 4 .  P.map showReg . toList . indexed
               showReg (idx, v) = "r" ++ (show idx) ++ ":\t" ++ (show v)
 
 chunks n v
@@ -46,6 +46,8 @@ data Instruction = Nop
                  | Ble Arg Arg Label
                  | Bge Arg Arg Label
                  deriving (Show, Eq)
+
+returnRegister = (Reg 31)
 
 valOf (Reg r) (CPU _ rs _) = rs ! r
 valOf (Val a) _            = a
@@ -114,7 +116,7 @@ runInstruction (Ble r1 r2 idx)       = branchIf (<=) r1 r2 idx
 runInstruction (Bge r1 r2 idx)       = branchIf (>=) r1 r2 idx
 runInstruction Nop                   = increment
 runInstruction (Call (Addr idx))     = runCall idx
-    where runCall idx cpu@(CPU c rs mem) = (recount idx . mov (Reg 31) (Val (fromIntegral (c+1)))) cpu
+    where runCall idx cpu@(CPU c _ _) = recount idx . mov returnRegister (Val $ c+1) $ cpu
 
 branchIf f r1 r2 (Addr idx) cpu
     | f (valOf r1 cpu) (valOf r2 cpu) = recount idx cpu
