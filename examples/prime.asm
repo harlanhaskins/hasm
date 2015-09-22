@@ -11,7 +11,7 @@ prime_loop:
                     beqz r12 is_divisible       ; If the mod is 0, jump to the true case.
 is_not_divisible:
                     mov r20 r10
-                    add r10 2
+                    add r10 r10 2
                     jmp prime_loop
 is_divisible:
                     mov r13 0                   ; If we found a divisor, the number is not prime, so write a 0 in the return register.
