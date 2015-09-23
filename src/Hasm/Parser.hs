@@ -175,22 +175,22 @@ parseIntoList p = (:[]) <$> p
 parseStr = parseMemInst "str" Str
 parseLd = parseMemInst "ld" Ld
 
-parseSingleInst = parseIntoList (parseMov
-                             <|> parseNop
-                             <|> parseJmp
-                             <|> parseCall
-                             <|> parseMovl
-                             <|> parseJr
-                             <|> parseRet
-                             <|> parseInc
-                             <|> parseDec
-                             <|> parseLd
-                             <|> parseStr
-                             <|> choice ternaryParsers
-                             <|> choice branchParsers
-                             <|> choice pseudoBranchParsers)
+parseSingleInst = parseMov
+              <|> parseNop
+              <|> parseJmp
+              <|> parseCall
+              <|> parseMovl
+              <|> parseJr
+              <|> parseRet
+              <|> parseInc
+              <|> parseDec
+              <|> parseLd
+              <|> parseStr
+              <|> choice ternaryParsers
+              <|> choice branchParsers
+              <|> choice pseudoBranchParsers
 
-parseInst = parseSingleInst -- This will be combined with other pseudo-instruction parsers
+parseInst = parseIntoList parseSingleInst -- This will be combined with other pseudo-instruction parsers
 
 skipComments = do
     spaceSkip
