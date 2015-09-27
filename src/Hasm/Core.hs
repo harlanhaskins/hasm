@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 module Hasm.Core where
 
 import Prelude hiding (map, null, head, splitAt, prependToAll, intercalate, intersperse, foldr1, tail)
@@ -76,7 +77,7 @@ recountR r1 cpu@(CPU _ rs mem) = CPU (valOf r1 cpu) rs mem
 increment cpu@(CPU c _ _) = recount (c+1) cpu
 
 run :: Bool -> V.Vector Instruction -> CPU -> IO CPU
-run verbose is cpu@(CPU c _ _) = do
+run verbose is cpu@(CPU !c !_ !_) = do
     case (is V.!? c) of
         Nothing  -> return cpu
         (Just i) -> do
