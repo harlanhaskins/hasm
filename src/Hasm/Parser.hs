@@ -17,7 +17,20 @@ caseString s = try (mapM caseChar s) <?> "\"" ++ s ++ "\""
 
 spaceSkip = skipMany $ satisfy (`elem` ['\t', ' '])
 
-parseReg = Reg <$> (caseChar 'r' *> decimal)
+parseNamedReg (name, r) = do
+    caseString name
+    return r
+
+regSection c off end = map (\(n, off') -> (c:(show n), Reg off')) (zip [0..] [off..end])
+
+regNames = [("ra", Reg 31), ("v0", Reg 2), ("v1", Reg 3), ("sp", Reg 26)]
+         ++ (regSection 's' 18 25)
+         ++ (regSection 't' 8 17)
+         ++ (regSection 'a' 4 7)
+
+parseNormalReg = Reg <$> (caseChar 'r' *> decimal)
+parseSpecialReg = map parseNamedReg regNames
+parseReg = choice parseSpecialReg <|> parseNormalReg
 
 parseVal = Val <$> decimal
 
