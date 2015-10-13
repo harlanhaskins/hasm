@@ -3,6 +3,7 @@
 import System.Environment
 import Text.Read
 import Data.Attoparsec.ByteString.Char8 (parseOnly)
+import Options.Applicative
 import qualified Data.ByteString as B
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector as V
@@ -18,13 +19,26 @@ data Config = Config
 
 initialize (CPU c rs mem) xs = (CPU c (rs U.// (zip [0..] xs)) mem)
 
-parseArguments :: [String] -> Config
-parseArguments ("-d":fn:xs) = Config fn True  (map read xs)
-parseArguments (     fn:xs) = Config fn False (map read xs)
+configParse :: Parser Config
+configParse = Config
+          <$> strArgument (
+                metavar "FILENAME"
+             <> help "The hasm file to execute." )
+          <*> switch (
+                short 'd'
+             <> long "debug"
+             <> help "Show each CPU step and registers." )
+          <*> some (argument auto (
+                metavar "VALUES..."
+             <> help "Initial values, in order, for the registers." ))
+
+opts = info (helper <*> configParse)
+     ( fullDesc
+    <> progDesc "Runs a hasm file and prints the final state"
+    <> header "hasm - an assembly-like programming language" )
 
 main = do
-    args <- getArgs
-    let config = parseArguments args
+    config <- execParser opts
     file <- (B.readFile . filename) config
     case parseOnly parseFile file of
         Left err -> putStrLn $ "Error parsing: " ++ err

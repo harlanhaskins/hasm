@@ -154,6 +154,18 @@ parseMov = do
     src <- parseArg
     return $ Mov dst src
 
+parsePush = do
+    val <- parseUnary "push"
+    return $ [(Str (Reg 26) val)
+             ,(Add (Reg 26) (Reg 26) (Val 1))
+             ]
+
+parsePop = do
+    val <- parseUnary "pop"
+    return $ [(Ld (Reg 26) val)
+             ,(Sub (Reg 26) (Reg 26) (Val 1))
+             ]
+
 parseMovl = do
     parseNoArgs "movl"
     dst <- parseReg
@@ -203,7 +215,9 @@ parseSingleInst = parseMov
               <|> choice branchParsers
               <|> choice pseudoBranchParsers
 
-parseInst = parseIntoList parseSingleInst -- This will be combined with other pseudo-instruction parsers
+parseInst = parseIntoList parseSingleInst
+        <|> parsePush
+        <|> parsePop
 
 skipComments = do
     spaceSkip
