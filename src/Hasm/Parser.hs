@@ -23,10 +23,11 @@ parseNamedReg (name, r) = do
 
 regSection c off end = map (\(n, off') -> (c:(show n), Reg off')) (zip [0..] [off..end])
 
-regNames = [("ra", Reg 31), ("v0", Reg 2), ("v1", Reg 3), ("sp", Reg 26)]
-         ++ (regSection 's' 18 25)
-         ++ (regSection 't' 8 17)
+regNames = [("ra", Reg 31), ("sp", Reg 26), ("_", Reg 30)]
+         ++ (regSection 'v' 2 3)
          ++ (regSection 'a' 4 7)
+         ++ (regSection 't' 8 17)
+         ++ (regSection 's' 18 25)
 
 parseNormalReg = Reg <$> (caseChar 'r' *> decimal)
 parseSpecialReg = map parseNamedReg regNames
