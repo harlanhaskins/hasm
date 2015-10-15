@@ -156,14 +156,14 @@ parseMov = do
 
 parsePush = do
     val <- parseUnary "push"
-    return $ [(Str (Reg 26) val)
-             ,(Add (Reg 26) (Reg 26) (Val 1))
+    return $ [ Str (Reg 26) val
+             , Add (Reg 26) (Reg 26) (Val 1)
              ]
 
 parsePop = do
-    val <- parseUnary "pop"
-    return $ [(Ld (Reg 26) val)
-             ,(Sub (Reg 26) (Reg 26) (Val 1))
+    dst <- parseUnary "pop"
+    return $ [ Sub (Reg 26) (Reg 26) (Val 1)
+             , Ld dst (Reg 26)
              ]
 
 parseMovl = do
@@ -200,16 +200,11 @@ parseIntoList p = (:[]) <$> p
 parseStr = parseMemInst "str" Str
 parseLd = parseMemInst "ld" Ld
 
-parseSingleInst = parseMov
-              <|> parseNop
-              <|> parseJmp
-              <|> parseCall
-              <|> parseMovl
-              <|> parseJr
-              <|> parseRet
-              <|> parseInc
-              <|> parseDec
-              <|> parseLd
+parseSingleInst = parseMov  <|> parseNop
+              <|> parseJmp  <|> parseCall
+              <|> parseMovl <|> parseJr
+              <|> parseRet  <|> parseInc
+              <|> parseDec  <|> parseLd
               <|> parseStr
               <|> choice ternaryParsers
               <|> choice branchParsers
@@ -229,12 +224,6 @@ parseEndOfLine = skipComments <|> skipSpace
 
 parseCmd = Right <$> parseInst
        <|> Left  <$> parseLabel
-
-parseConfig = do
-    spaceSkip
-    memory <- decimal
-    parseEndOfLine
-    return $ CPU 0 (V.replicate 32 0) (V.replicate memory 0)
 
 flattenRights :: [Either a [b]] -> [Either a b]
 flattenRights [] = []
@@ -269,11 +258,10 @@ replacedLabel ls (Bne r1 r2 (Lbl s)) = Bne r1 r2 (Addr (ls M.! s))
 replacedLabel ls (Beq r1 r2 (Lbl s)) = Beq r1 r2 (Addr (ls M.! s))
 replacedLabel _  i                   = i
 
-parseFile :: Parser (CPU, [Instruction])
+parseFile :: Parser [Instruction]
 parseFile = do
-    cpu <- parseConfig
     skipSpace
     lines <- many $ parseCmd <* parseEndOfLine
     skipSpace
     endOfInput
-    return (cpu, replaceLabels lines)
+    return $ replaceLabels lines

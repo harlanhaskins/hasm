@@ -1,5 +1,3 @@
-10
-
     mov r0 4
 loop:
     str r0 r1

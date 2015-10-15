@@ -1,5 +1,3 @@
-0
-
                     jmp start
 prime_check:
                     mov r13 1

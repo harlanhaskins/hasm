@@ -1,5 +1,3 @@
-0
-
             mov r1 1
             mov r2 1
 fib_start:

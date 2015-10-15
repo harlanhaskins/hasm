@@ -1,4 +1,3 @@
-0
                     jmp start
 prime_check:
                     mod t0 a0 2                ; Always check for divisible by 2.

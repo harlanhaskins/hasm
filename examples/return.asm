@@ -1,5 +1,3 @@
-0
-
         mov r0 10               ; move data into registers
         mov r1 20
         call add2nums            ; push address of next instruction

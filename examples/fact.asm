@@ -1,4 +1,3 @@
-0
             mov r1 1
 mulloop:
             mul r1 r1 r0

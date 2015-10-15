@@ -1,5 +1,3 @@
-0
-
 gcd_loop:
             beqz r1 done
             mov r2 r1

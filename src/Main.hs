@@ -14,10 +14,12 @@ import Hasm.Parser
 data Config = Config
     { filename     :: String
     , debug        :: Bool
+    , memory       :: Int
     , values       :: [Int]
     }
 
-initialize (CPU c rs mem) xs = (CPU c (rs U.// (zip [0..] xs)) mem)
+initialized (Config _ _ memory values) = (CPU 0 (rs U.// (zip [0..] values)) (U.replicate memory 0))
+    where rs = U.replicate 32 0
 
 configParse :: Parser Config
 configParse = Config
@@ -28,9 +30,15 @@ configParse = Config
                 short 'd'
              <> long "debug"
              <> help "Show each CPU step and registers." )
-          <*> some (argument auto (
+          <*> option auto (
+                short 'm'
+             <> long "memory"
+             <> metavar "M"
+             <> help "How much memory the CPU has during execution. Defaults to 0 banks."
+             <> value 0 )
+          <*> many (argument auto (
                 metavar "VALUES..."
-             <> help "Initial values, in order, for the registers." ))
+             <> help "Initial values, in order, for the registers." ) )
 
 opts = info (helper <*> configParse)
      ( fullDesc
@@ -42,12 +50,12 @@ main = do
     file <- (B.readFile . filename) config
     case parseOnly parseFile file of
         Left err -> putStrLn $ "Error parsing: " ++ err
-        Right (cpu, instructions) -> do
-            let initialized = initialize cpu (values config)
-            putStrLn $ "Starting CPU: \n" ++ (show initialized)
+        Right instructions -> do
+            let cpu = initialized config
+            putStrLn $ "Starting CPU: \n" ++ (show cpu)
             if (debug config) then do
                 putStrLn . unlines . (map show) $ instructions
             else do
                 return ()
-            final <- run (debug config) (V.fromList instructions) initialized
+            final <- run (debug config) (V.fromList instructions) cpu
             putStrLn $ "Final CPU: \n" ++ (show final)
