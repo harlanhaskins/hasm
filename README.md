@@ -9,6 +9,10 @@ nop
 
 ; register storage
 mov dst r1
+ld dst reg
+str dst reg
+push reg
+pop dst
 
 ; arithmetic
 add dst r1 r2
@@ -42,6 +46,9 @@ bnez r1 label
 
 ; control flow
 jmp label
+jr reg
+call label
+ret
 ```
 
 For example, the fibonnacci sequence:
