@@ -5,8 +5,11 @@ import Prelude hiding (map, null, head, splitAt, prependToAll, intercalate, inte
 import qualified Prelude as P
 import qualified Data.List as L
 import qualified Data.Bits as B
+import Data.Char (ord, chr)
 import Data.Vector.Unboxed hiding ((++))
 import qualified Data.Vector as V
+import Control.Exception (catch)
+import System.IO.Error
 
 data CPU = CPU Int (Vector Int) (Vector Int) deriving (Eq)
 instance Show CPU where
@@ -39,6 +42,7 @@ data Instruction = Nop
                  | Movl Arg Label
                  | Jmp Label
                  | Call Label
+                 | Syscall Arg
                  | Jr Arg
                  | Bne Arg Arg Label
                  | Beq Arg Arg Label
@@ -69,6 +73,13 @@ or  = combine (B..|.)
 sll = combine (\x y -> B.shiftL x y)
 srl = combine (\x y -> B.shiftR x y)
 
+syscall 1 (CPU c rs mem) = do
+    char <- getChar `catch` \e -> if isEOFError e then return '\0' else ioError e
+    return $ CPU (c+1) (rs // [(2, ord char)]) mem
+syscall 2 cpu@(CPU c rs mem) = do
+    putChar $ chr (rs ! 4)
+    return $ increment cpu
+
 ld (Reg dst) src cpu@(CPU c rs mem) = CPU (c+1) (rs // [(dst, mem ! (valOf src cpu))]) mem
 str dst src cpu@(CPU c rs mem)      = CPU (c+1) rs (mem // [(valOf src cpu, valOf dst cpu)])
 
@@ -81,13 +92,15 @@ run verbose is cpu@(CPU !c !_ !_) = do
     case (is V.!? c) of
         Nothing  -> return cpu
         (Just i) -> do
-            let final = runInstruction i cpu
-            if verbose then do
+            final <- runInst i cpu
+            recurse verbose i is final
+    where runInst (Syscall (Val s)) cpu = syscall s cpu
+          runInst i                 cpu = return $ runInstruction i cpu
+          recurse True i is c = do
                 putStrLn $ (show i) ++ "\n"
-                putStrLn $ (show final) ++ "\n"
-                run verbose is final
-            else do
-                run verbose is final
+                putStrLn $ (show c) ++ "\n"
+                recurse False i is c
+          recurse v _ is c        = run v is c
 
 runInstruction :: Instruction -> CPU -> CPU
 runInstruction (Mov dst src)         = mov dst src

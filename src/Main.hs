@@ -52,10 +52,9 @@ main = do
         Left err -> putStrLn $ "Error parsing: " ++ err
         Right instructions -> do
             let cpu = initialized config
-            putStrLn $ "Starting CPU: \n" ++ (show cpu)
             if (debug config) then do
                 putStrLn . unlines . (map show) $ instructions
             else do
                 return ()
-            final <- run (debug config) (V.fromList instructions) cpu
-            putStrLn $ "Final CPU: \n" ++ (show final)
+            _ <- run (debug config) (V.fromList instructions) cpu
+            return ()

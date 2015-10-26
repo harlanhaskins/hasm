@@ -155,6 +155,10 @@ parseMov = do
     src <- parseArg
     return $ Mov dst src
 
+parseSyscall = do
+    arg <- parseUnary "syscall"
+    return $ Syscall arg
+
 parsePush = do
     val <- parseUnary "push"
     return $ [ Str (Reg 26) val
@@ -206,7 +210,7 @@ parseSingleInst = parseMov  <|> parseNop
               <|> parseMovl <|> parseJr
               <|> parseRet  <|> parseInc
               <|> parseDec  <|> parseLd
-              <|> parseStr
+              <|> parseStr  <|> parseSyscall
               <|> choice ternaryParsers
               <|> choice branchParsers
               <|> choice pseudoBranchParsers
