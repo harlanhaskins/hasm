@@ -18,4 +18,5 @@ prime_check_end:
 start:
                     mov a0 r0                  ; Mov r0 into the argument register
                     call prime_check           ; Run the subroutine
-                    mov r0 v0                  ; Put the return value in r0
+                    mov a0 v0                  ; Put the return value in a0
+                    syscall 3                  ; Perform the 'write int' syscall

@@ -79,6 +79,9 @@ syscall 1 (CPU c rs mem) = do
 syscall 2 cpu@(CPU c rs mem) = do
     putChar $ chr (rs ! 4)
     return $ increment cpu
+syscall 3 cpu@(CPU c rs mem) = do
+    putStr $ show (rs ! 4)
+    return $ increment cpu
 
 ld (Reg dst) src cpu@(CPU c rs mem) = CPU (c+1) (rs // [(dst, mem ! (valOf src cpu))]) mem
 str dst src cpu@(CPU c rs mem)      = CPU (c+1) rs (mem // [(valOf src cpu, valOf dst cpu)])
@@ -99,9 +102,8 @@ run verbose is cpu@(CPU !c !_ !_) = do
           recurse True i is c = do
                 putStrLn $ (show i) ++ "\n"
                 putStrLn $ (show c) ++ "\n"
-                recurse False i is c
+                run True is c
           recurse v _ is c        = run v is c
-
 runInstruction :: Instruction -> CPU -> CPU
 runInstruction (Mov dst src)         = mov dst src
 runInstruction (Ld dst src)          = ld dst src

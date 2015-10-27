@@ -8,3 +8,5 @@ fib_start:
             dec r0                          ; Decrement the counter for which number we're on
             jmp fib_start
 done:
+            mov a0 r2
+            syscall 3
