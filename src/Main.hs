@@ -18,8 +18,9 @@ data Config = Config
     , values       :: [Int]
     }
 
-initialized (Config _ _ memory values) = (CPU 0 (rs U.// (zip [0..] values)) (U.replicate memory 0))
-    where rs = U.replicate 32 0
+initialized (Config _ _ memory values) = (CPU 0 (initializedRs U.// [(26, (memory - 1))]) (U.replicate memory 0))
+    where rs            = U.replicate 32 0
+          initializedRs = (rs U.// (zip [0..] values))
 
 parseLeftover p b = feed (parse p b) mempty
 

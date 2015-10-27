@@ -161,13 +161,13 @@ parseSyscall = do
 
 parsePush = do
     val <- parseUnary "push"
-    return $ [ Str (Reg 26) val
-             , Add (Reg 26) (Reg 26) (Val 1)
+    return $ [ Str val (Reg 26)
+             , Sub (Reg 26) (Reg 26) (Val 1)
              ]
 
 parsePop = do
     dst <- parseUnary "pop"
-    return $ [ Sub (Reg 26) (Reg 26) (Val 1)
+    return $ [ Add (Reg 26) (Reg 26) (Val 1)
              , Ld dst (Reg 26)
              ]
 
