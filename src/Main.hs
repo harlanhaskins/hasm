@@ -2,7 +2,7 @@
 
 import System.Environment
 import Text.Read
-import Data.Attoparsec.ByteString.Char8 (parseOnly)
+import Data.Attoparsec.ByteString.Char8 (parseOnly, feed, parse)
 import Options.Applicative
 import qualified Data.ByteString as B
 import qualified Data.Vector.Unboxed as U
@@ -20,6 +20,8 @@ data Config = Config
 
 initialized (Config _ _ memory values) = (CPU 0 (rs U.// (zip [0..] values)) (U.replicate memory 0))
     where rs = U.replicate 32 0
+
+parseLeftover p b = feed (parse p b) mempty
 
 configParse :: Parser Config
 configParse = Config
@@ -49,7 +51,7 @@ main = do
     config <- execParser opts
     file <- (B.readFile . filename) config
     case parseOnly parseFile file of
-        Left err -> putStrLn $ "Error parsing: " ++ err
+        Left err -> putStrLn $ "Error: \"" ++ (take 35 . show . parseLeftover parseFile) file ++ "...\""
         Right instructions -> do
             let cpu = initialized config
             if (debug config) then do
