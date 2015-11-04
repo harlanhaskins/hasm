@@ -1,24 +1,47 @@
 module Hasm.Parser where
-
-import Data.Attoparsec.ByteString.Char8
 import qualified Data.ByteString.Char8 as BSC
 import Control.Applicative
+import Control.Monad (void)
 import Data.Char
 import qualified Data.Map as M
 import Data.Either
 import qualified Data.Vector.Unboxed as V
+import Text.Megaparsec (try, (<?>))
+import Text.Megaparsec.ByteString
+import Text.Megaparsec.Combinator as MPC
+import Text.Megaparsec.Prim
+import qualified Text.Megaparsec.Char as C
+import qualified Text.Megaparsec.Lexer as L
 
 import Hasm.Core
 
-word = takeWhile1 . inClass $ "-a-zA-Z0-9_'"
+infixl <||>
+p <||> q = (try p) <|> (try q)
 
-caseChar c = char (toLower c) <|> char (toUpper c)
-caseString s = try (mapM caseChar s) <?> "\"" ++ s ++ "\""
+choice' = choice . map try
 
-spaceSkip = skipMany $ satisfy (`elem` ['\t', ' '])
+nonNewlineSpace = C.satisfy (\c -> isSpace c && (c /= '\n'))
+
+comment = L.skipLineComment ";"
+blockComment = L.skipBlockComment "/*" "*/"
+
+space :: Parser ()
+space = L.space (void nonNewlineSpace) comment blockComment
+
+space' :: Parser ()
+space' = L.space (void C.spaceChar) comment blockComment
+
+symbol = L.symbol' space
+
+lexeme        = L.lexeme space
+integer       = lexeme L.integer
+signedInteger = L.signed space integer
+
+identifierChar = (C.alphaNumChar <||> (C.oneOf "*+-/_'=^?!<>"))
+identifier = some identifierChar <?> "identifier"
 
 parseNamedReg (name, r) = do
-    caseString name
+    symbol name
     return r
 
 regSection c off end = map (\(n, off') -> (c:(show n), Reg off')) (zip [0..] [off..end])
@@ -29,50 +52,42 @@ regNames = [("ra", Reg 31), ("sp", Reg 26), ("_", Reg 30)]
          ++ (regSection 't' 8 17)
          ++ (regSection 's' 18 25)
 
-parseNormalReg = Reg <$> (caseChar 'r' *> decimal)
+parseNormalReg = Reg . fromIntegral <$> ((C.char 'r') *> integer <* space)
 parseSpecialReg = map parseNamedReg regNames
-parseReg = choice parseSpecialReg <|> parseNormalReg
+parseReg = (choice' parseSpecialReg <||> parseNormalReg) <?> "register name"
 
-parseVal = Val <$> decimal
+parseVal = (Val . fromIntegral <$> signedInteger) <?> "value"
 
-parseLbl = Lbl . BSC.unpack <$> word
+parseLbl = (Lbl <$> lexeme identifier) <?> "label"
 
-parseAddr = Addr <$> decimal
+parseAddr = (Addr . fromIntegral <$> integer) <?> "address"
 
 parseLabel = do
-    spaceSkip
-    text <- word
-    char ':'
-    return $ (Lbl . BSC.unpack) text
+    text <- lexeme identifier
+    symbol ":"
+    return $ Lbl text
 
-parseJmpLabel = parseLbl <|> parseAddr
+parseJmpLabel = parseLbl
+           <||> parseAddr
 
-parseArg = parseReg
-       <|> parseVal
-
-parseNoArgs inst = do
-    spaceSkip
-    caseString inst
-    spaceSkip
+parseArg = (parseReg <?> "register name")
+      <||> (parseVal <?> "value")
 
 parseUnary inst = do
-    parseNoArgs inst
+    symbol inst
     arg <- parseArg
     return arg
 
 parseBinary inst = do
-    parseNoArgs inst
+    symbol inst
     arg1 <- parseArg
-    spaceSkip
     arg2 <- parseArg
     return (arg1, arg2)
 
 parseTernary inst = do
-    parseNoArgs inst
+    symbol inst
     arg1 <- parseReg
-    spaceSkip
     arg2 <- parseArg
-    spaceSkip
     arg3 <- parseArg
     return (arg1, arg2, arg3)
 
@@ -81,14 +96,10 @@ fromTernaryTuple (inst, c) = do
     return $ c dst r1 r2
 
 parseBranch inst c = do
-    parseNoArgs inst
-    spaceSkip
+    symbol inst
     loc <- parseArg
-    spaceSkip
     arg <- parseArg
-    spaceSkip
     addr <- parseJmpLabel
-    spaceSkip
     return (loc, arg, addr)
 
 fromBranchTuple (inst, c) = do
@@ -96,32 +107,30 @@ fromBranchTuple (inst, c) = do
     return $ c r1 r2 addr
 
 parsePseudoBranchZero inst c = do
-    parseNoArgs inst
-    spaceSkip
+    symbol inst
     reg <- parseReg
-    spaceSkip
     addr <- parseJmpLabel
     return $ c reg (Val 0) addr
 
 fromPseudoBranchTuple (inst, c) = parsePseudoBranchZero inst c
 
-ternaryParsers = map fromTernaryTuple           [("add", Add)
-                                                ,("and", And)
-                                                ,("or", Or)
-                                                ,("xor", Xor)
-                                                ,("sll", Sll)
-                                                ,("srl", Srl)
-                                                ,("sub", Sub)
-                                                ,("div", Div)
-                                                ,("mod", Mod)
-                                                ,("mul", Mul)]
+ternaryParsers = map fromTernaryTuple [("add", Add)
+                                      ,("and", And)
+                                      ,("or", Or)
+                                      ,("xor", Xor)
+                                      ,("sll", Sll)
+                                      ,("srl", Srl)
+                                      ,("sub", Sub)
+                                      ,("div", Div)
+                                      ,("mod", Mod)
+                                      ,("mul", Mul)]
 
-branchParsers = map fromBranchTuple             [("beq", Beq)
-                                                ,("bne", Bne)
-                                                ,("bge", Bge)
-                                                ,("ble", Ble)
-                                                ,("blt", Blt)
-                                                ,("bgt", Bgt)]
+branchParsers = map fromBranchTuple [("beq", Beq)
+                                    ,("bne", Bne)
+                                    ,("bge", Bge)
+                                    ,("ble", Ble)
+                                    ,("blt", Blt)
+                                    ,("bgt", Bgt)]
 
 pseudoBranchParsers = map fromPseudoBranchTuple [("bgtz", Bgt)
                                                 ,("bgez", Bge)
@@ -131,27 +140,26 @@ pseudoBranchParsers = map fromPseudoBranchTuple [("bgtz", Bgt)
                                                 ,("blez", Ble)]
 
 parseNop = do
-    parseNoArgs "nop"
+    symbol "nop"
     return Nop
 
 parseRet = do
-    parseNoArgs "ret"
+    symbol "ret"
     return $ Jr (Reg 31)
 
 parseInc = do
-    parseNoArgs "inc"
+    symbol "inc"
     reg <- parseReg
     return $ Add reg reg (Val 1)
 
 parseDec = do
-    parseNoArgs "dec"
+    symbol "dec"
     reg <- parseReg
     return $ Sub reg reg (Val 1)
 
 parseMov = do
-    parseNoArgs "mov"
+    symbol "mov"
     dst <- parseReg
-    spaceSkip
     src <- parseArg
     return $ Mov dst src
 
@@ -172,31 +180,29 @@ parsePop = do
              ]
 
 parseMovl = do
-    parseNoArgs "movl"
+    symbol "movl"
     dst <- parseReg
-    spaceSkip
     src <- parseJmpLabel
     return $ Movl dst src
 
 parseJmp = do
-    parseNoArgs "jmp"
+    symbol "jmp"
     dst <- parseJmpLabel
     return $ Jmp dst
 
 parseCall = do
-    parseNoArgs "call"
+    symbol "call"
     dst <- parseJmpLabel
     return $ Call dst
 
 parseJr = do
-    parseNoArgs "jr"
+    symbol "jr"
     dst <- parseReg
     return $ Jr dst
 
 parseMemInst inst c = do
-    parseNoArgs inst
+    symbol inst
     dst <- parseReg
-    spaceSkip
     src <- parseReg
     return $ c dst src
 
@@ -205,30 +211,22 @@ parseIntoList p = (:[]) <$> p
 parseStr = parseMemInst "str" Str
 parseLd = parseMemInst "ld" Ld
 
-parseSingleInst = parseMov  <|> parseNop
-              <|> parseJmp  <|> parseCall
-              <|> parseMovl <|> parseJr
-              <|> parseRet  <|> parseInc
-              <|> parseDec  <|> parseLd
-              <|> parseStr  <|> parseSyscall
-              <|> choice ternaryParsers
-              <|> choice branchParsers
-              <|> choice pseudoBranchParsers
+parseSingleInst = parseMov  <||> parseNop
+             <||> parseJmp  <||> parseCall
+             <||> parseMovl <||> parseJr
+             <||> parseRet  <||> parseInc
+             <||> parseDec  <||> parseLd
+             <||> parseStr  <||> parseSyscall
+             <||> (choice' ternaryParsers)
+             <||> (choice' branchParsers)
+             <||> (choice' pseudoBranchParsers)
 
-parseInst = parseIntoList parseSingleInst
-        <|> parsePush
-        <|> parsePop
+parseInst = (parseIntoList parseSingleInst)
+       <||> parsePush
+       <||> parsePop
 
-skipComments = do
-    spaceSkip
-    char ';'
-    manyTill' anyChar (try endOfLine)
-    return ()
-
-parseEndOfLine = skipComments <|> skipSpace
-
-parseCmd = Right <$> parseInst
-       <|> Left  <$> parseLabel
+parseCmd = ((Right <$> parseInst)  <?> "instruction")
+      <||> ((Left  <$> parseLabel) <?> "label")
 
 flattenRights :: [Either a [b]] -> [Either a b]
 flattenRights [] = []
@@ -265,8 +263,6 @@ replacedLabel _  i                   = i
 
 parseFile :: Parser [Instruction]
 parseFile = do
-    skipSpace
-    lines <- many $ parseCmd <* parseEndOfLine
-    skipSpace
-    endOfInput
+    lines <- many (space' *> parseCmd <* C.eol)
+    eof
     return $ replaceLabels lines
